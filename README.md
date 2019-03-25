@@ -1,2 +1,2 @@
-# boostfractor
-MadMax electrodynamics simulation BoostFractor
+# BoostFractor
+MadMax electrodynamics simulation BoostFractor.
