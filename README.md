@@ -1,7 +1,11 @@
 # BoostFractor
 MadMax electrodynamics simulation BoostFractor.
 
-## Useful Links and literature
+## Usage
+TODO: Add examples.
+
+## For Development
+### Useful Links and literature
 
 1D Model: https://arxiv.org/abs/1612.07057
 
