@@ -5,7 +5,16 @@ MadMax electrodynamics simulation BoostFractor.
 For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
 
 ## Prequisits
-Please run <tt>install.jl</tt> to install all packages needed by BoostFractor.
+Packages: ``FFTW``.
+
+To install packages just run
+```
+import Pkg;
+
+Pkg.add("FFTW");
+```
+
+You migh find useful ``PyPlot, IJulia, JLD``...
 
 ## Usage
 The following are minimal working examples
