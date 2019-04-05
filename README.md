@@ -66,7 +66,7 @@ result = @sync @distributed (zcat) for i in 1:length(Deps)
     
     # We use the "dancer" algorithm to calculate our result (the only one I uploaded to GitHub so far and the one I usually use)
         
-    #1D
+    #1D (if you calculate in 1D, use (vcat) above instead of (zcat) )
     #dancer(0,200,sbdry; prop=propagator1D,f=10e9,Xset=[0.0000001],Yset=[0.0000001])
     #3D    
     dancer(0,200,sbdry; prop=propagator,f=10e9,Xset=-0.5:0.005:0.5,Yset=-0.5:0.005:0.5)
