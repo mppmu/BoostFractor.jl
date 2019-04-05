@@ -4,6 +4,11 @@ MadMax electrodynamics simulation BoostFractor.
 ## Usage
 TODO: Add examples.
 
+```julia
+s = "Python syntax highlighting"
+print s
+```
+
 ## For Development
 ### Useful Links and literature
 
