@@ -8,7 +8,7 @@
 
 module BoostFractor
 
-export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, propagator1D,init_coords, hankel_init, propagatorHankel, hankel_r, hankel_free
+export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, propagator1D,init_coords
 
 using FFTW
 
