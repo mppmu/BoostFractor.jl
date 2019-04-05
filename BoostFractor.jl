@@ -355,6 +355,64 @@ function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, la
 end
 
 """
+All stuff for 2D -> 3D
+"""
+
+using GSL
+global hankel_trfo = nothing
+# Calculate the coordinate systems
+global R = X #dht_x_sample.(hankel_trfo, 1:length(X)) 
+global Kr = coordsKx #dht_k_sample.(hankel_trfo, 1:length(X)) 
+# Buffer memory for doing the DHT
+global E1real = zeros((length(X)))
+global E1imag = zeros((length(X)))
+global hankel_scale = 1.
+
+function hankel_init(Xset)
+    global X = Xset
+    # Create the Hankel transform object
+    global hankel_trfo = dht_new(length(X), 0, maximum(X))
+    # Calculate the coordinate systems
+    global R = dht_x_sample.(hankel_trfo, 1:length(X)) 
+    global coordsKr = dht_k_sample.(hankel_trfo, 1:length(X)) 
+    global E1real = zeros((length(X)))
+    global E1imag = zeros((length(X)))
+    global hankel_scale = (maximum(coordsKr)/maximum(R))
+end
+
+
+
+function complex_dht(E0)
+    dht_apply(hankel_trfo, real(E0)[:,1], E1real)
+    dht_apply(hankel_trfo, imag(E0)[:,1], E1imag)
+    E0[:,1] = E1real .+ 1im*E1imag # DHT is a linear operator, so we can split up real and imaginary parts.
+    E0 .*= hankel_scale # Ensures twice application of DHT gives initial input
+    return E0
+end
+
+"""
+This propagator does a 2D Hankel transformation to calculate in 2D and get a 3D result.
+"""
+function propagatorHankel(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+    # Diffract at the Disk. Only the disk is diffracting.
+	E0 .*= [r < diskR for r in R, y in Y]
+    E0 = complex_dht(E0)
+    k0 = 2*pi/lambda*sqrt(eps)
+	k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kr^2) )) for Kr in coordsKr, Ky in coordsKy]
+	E0 = E0 .* exp.(-1im*k_prop*dz)
+    E0 = complex_dht(E0)
+    return E0
+end
+
+function hankel_r()
+    return R
+end
+
+function hankel_free()
+    dht_free(hankel_trfo)
+end
+
+"""
 This propagator just does the phase propagation.
 """
 function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
@@ -369,6 +427,28 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     
 end
 
+## 1D Model for Dielectric Disks ###################################################################
+"""
+The following function generates an array of reflectivities and transmissivities
+based on phase depth
+"""
+function reflectivity_transmissivity_1d(phase_depth, n)
+    ref = ((n^2-1)*sin(phase_depth)/ 
+       (1im*2*n*cos(phase_depth) + (n^2+1)*sin(phase_depth) ))
+	trans = (1im*2*n)/(1im*2*n *cos(phase_depth) + (n^2+1)*sin(phase_depth) )	
+	return ref, trans
+end
+
+"""
+The following function generates an array of reflectivities and transmissivities
+based on a frequency, Kx, Ky and thickness
+"""
+function reflectivity_transmissivity_1d(freq, eps, thickness)
+	k0 = 2*pi*sqrt(eps)/(3e8/freq)
+	k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+	return reflectivity_transmissivity_1d(k_prop*thickness,sqrt(eps))
+end
+# TODO: Make this usable in above dancer. Here, t != r+1 and the sign of r does not change with direction...
 
 
 
