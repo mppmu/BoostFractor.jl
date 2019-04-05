@@ -12,6 +12,7 @@ To install packages just run
 import Pkg;
 
 Pkg.add("FFTW");
+Pkg.add("DSP");
 ```
 
 You migh find useful ``PyPlot, IJulia, JLD``...
