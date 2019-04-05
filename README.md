@@ -8,7 +8,7 @@ For the ease of use and to make an easy overview possible, the things here are o
 Packages: ``FFTW``.
 
 To install packages just run
-```
+```julia
 import Pkg;
 
 Pkg.add("FFTW");
