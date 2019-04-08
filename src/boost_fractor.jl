@@ -10,26 +10,26 @@ export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, pr
 
 
 mutable struct SetupBoundaries
-	distance::Array{Float64,1} # = [15e-3, 5e-3,0]
-	# Boundary reflection coefficient for right-propagating wave
-	r::Array{Complex{Float64},1}   # = [1,-0.5,0.5,0]
-	# Epsilon to the right of each boundary 
-	eps::Array{Complex{Float64},1}   # = [1,9,1]
-	# Tilts
-	relative_tilt_x # = [0,0]
-	relative_tilt_y # = [0,0]
-	# Surface Roughness ...
+    distance::Array{Float64,1} # = [15e-3, 5e-3,0]
+    # Boundary reflection coefficient for right-propagating wave
+    r::Array{Complex{Float64},1}   # = [1,-0.5,0.5,0]
+    # Epsilon to the right of each boundary 
+    eps::Array{Complex{Float64},1}   # = [1,9,1]
+    # Tilts
+    relative_tilt_x # = [0,0]
+    relative_tilt_y # = [0,0]
+    # Surface Roughness ...
     relative_surfaces::Array{Complex{Float64},3} # = [z, x,y ]
-	# etc.
+    # etc.
 end
 SetupBoundaries(distance::Array{Float64,1}, r::Array{Complex{Float64},1}, eps::Array{Complex{Float64},1}) = SetupBoundaries(distance,r,eps, zeros(length(distance)), zeros(length(distance)), zeros(length(distance), length(X), length(Y) ));
 SetupBoundaries(distance::Array{Float64,1}) = SetupBoundaries(distance,[1,-0.5,0.5,0],[1,9,1], [0.0,0.0,0.0], [0.0,0.0,0.0]);
 SetupBoundaries() = SetupBoundaries([15e-3, 5e-3,0]);
 
 mutable struct DiskDefiniton
-	thickness::Float64 # = 1e-3
-	# Boundary reflection coefficient for right-propagating wave
-	eps::Complex{Float64} # = 9
+    thickness::Float64 # = 1e-3
+    # Boundary reflection coefficient for right-propagating wave
+    eps::Complex{Float64} # = 9
 end
 DiskDefiniton() = DiskDefiniton(1e-3, 9)
 
@@ -74,19 +74,20 @@ end
 
 """
 Propagates the fields through the system
-	amin:	Mimum (local) amplitude of a field, in order to be propagated
-	nmax:	Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
-	bdry:	SetupBoundaries-Objekt, containing all relevant geometrical information (disk positions, epsilon, etc)
-	f:		Frequency
-	prop:	Propagator Function to use. Standard is propagator()
-	reflect:	If nothing (standar value), the axion-induced signal is computed
-				If set, this field defines a beam, for which the reflected beam will be calculated
-	Xset, Yset:	Explicitly set the coordinate system for the fields
-	returnsum:	If false, the out-propagating contributions after each iteration will be returned, without summing.
-	immediatesum:	If false, the out-propagating contributions will be saved and summed up at the end.
+                
+* `amin`:           Mimum (local) amplitude of a field, in order to be propagated
+* `nmax`:           Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
+* `bdry`:           SetupBoundaries-Objekt, containing all relevant geometrical information (disk positions, epsilon, etc)
+* `f`:              Frequency
+* `prop`:           Propagator Function to use. Standard is propagator()
+* `reflect`:        If nothing (standar value), the axion-induced signal is computed.
+                    If set, this field defines a beam, for which the reflected beam will be calculated
+* `Xset`, `Yset`:   Explicitly set the coordinate system for the fields
+* `returnsum`:      If false, the out-propagating contributions after each iteration will be returned, without summing.
+* `immediatesum`:   If false, the out-propagating contributions will be saved and summed up at the end.
 """
 function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnsum=true, immediatesum=true)
-	init_coords(Xset, Yset);	
+    init_coords(Xset, Yset);    
 
     rightmoving = 1
     leftmoving = 2
@@ -97,20 +98,20 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     #                       number of propagation directions --^           ^
     #                       dimensions of the fields at each position -----^
 
-	# Pre-allocate memory
-	if immediatesum
-    	Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),1))
+    # Pre-allocate memory
+    if immediatesum
+        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),1))
     else
-    	Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),nmax+1))
-	end
+        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),nmax+1))
+    end
 
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
-		if emit == nothing		
-			fields = dance_intro(bdry,X,Y)
-		else
-			fields = emit
-		end
+        if emit == nothing      
+            fields = dance_intro(bdry,X,Y)
+        else
+            fields = emit
+        end
         # Eout =
     else
         fields[length(bdry.distance), leftmoving, :, :] = reflect
@@ -148,14 +149,14 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
                 # The right-moving does not exist and about the transmitted one we dont care (yet)
             elseif i == length(bdry.r) # Rightmost case
                 # The rightmoving is transmitted to Eout (yeah! that'll be our result!)
-				# old version without pre-allocation                
-				#Eout                         = cat(3,Eout, (1+bdry.r[i])*fields[i-1, rightmoving,:,:])
-				# with pre-allocated array:
-				if immediatesum				
-					Eout[:,:,1]				 .+= (1+bdry.r[i]).*fields[i-1, rightmoving,:,:]
-				else			
-					Eout[:,:,n+1]			   = (1+bdry.r[i]).*fields[i-1, rightmoving,:,:]
-				end
+                # old version without pre-allocation                
+                #Eout                         = cat(3,Eout, (1+bdry.r[i])*fields[i-1, rightmoving,:,:])
+                # with pre-allocated array:
+                if immediatesum             
+                    Eout[:,:,1]              .+= (1+bdry.r[i]).*fields[i-1, rightmoving,:,:]
+                else            
+                    Eout[:,:,n+1]              = (1+bdry.r[i]).*fields[i-1, rightmoving,:,:]
+                end
                 # And reflected as well.
                 fields[i-1, rightmoving,:,:] .*= bdry.r[i]
             else # Standard Case
@@ -181,9 +182,9 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
         rightmoving = lmv
         
         # a is the maximum field that still occurs in the system
-		if amin != 0
-        	a = maximum(abs.(fields))
-		end
+        if amin != 0
+            a = maximum(abs.(fields))
+        end
         # n is the iteration count
         n += 1
     end
@@ -193,7 +194,7 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     # since different rays might have very different orders of magnitude
     # The other reason is, that we are able to return the different components
     # such that we can get immediate access to less accurate results
-	# TODO: See if Julia is really using the most intelligent summing strategy
+    # TODO: See if Julia is really using the most intelligent summing strategy
     if returnsum
         return sum(reverse(Eout, dims = 3), dims = 3)[:,:,1]
     else        
@@ -220,11 +221,11 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     for n in 1:length(bdry.distance)
         ax_rightmoving = 0
         if n == 1
-			if bdry.r[1] == 1
-            	ax_rightmoving = -1.0
-			else #TODO
-            	ax_rightmoving = 0
-			end
+            if bdry.r[1] == 1
+                ax_rightmoving = -1.0
+            else #TODO
+                ax_rightmoving = 0
+            end
         else
             # Right-Moving in that gap
             eps_i = bdry.eps[n-1]
@@ -250,26 +251,26 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
 end
 
 function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
-	if disk == nothing
-		# Initilize reflection coefficients according to epsilon
-		r_left = ones(length(bdry.eps))
-		r_left[1] = -1
-		for i in 2:length(bdry.eps)
-			# The reflectivity at this point
-			r_left = (sqrt(bdry.eps[i-1])-sqrt(bdry.eps[i]))/(sqrt(bdry.eps[i])+sqrt(bdry.eps[i-1]))
-		end
-		r_right = -r_left
-		t_left = 1. + r_left
-		t_right = 1 .+ r_right
-	else
-		# Initilize reflection coefficients according to disk model
-		ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
-		r_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*ref
-		r_right = r_left
-		t_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*trans
-		t_right = t_left
-	end
-	return r_left, r_right, t_left, t_right
+    if disk == nothing
+        # Initilize reflection coefficients according to epsilon
+        r_left = ones(length(bdry.eps))
+        r_left[1] = -1
+        for i in 2:length(bdry.eps)
+            # The reflectivity at this point
+            r_left = (sqrt(bdry.eps[i-1])-sqrt(bdry.eps[i]))/(sqrt(bdry.eps[i])+sqrt(bdry.eps[i-1]))
+        end
+        r_right = -r_left
+        t_left = 1. + r_left
+        t_right = 1 .+ r_right
+    else
+        # Initilize reflection coefficients according to disk model
+        ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
+        r_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*ref
+        r_right = r_left
+        t_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*trans
+        t_right = t_left
+    end
+    return r_left, r_right, t_left, t_right
 end
 
 ## Propagators ########################################################################################
@@ -279,76 +280,76 @@ Does the FFT of E0 on a disk, propagates the beam a given distance and does the 
 Note that this method is in-place. If it should be called more than one time on the 
 same fields, use propagator(copy(E0), ...).
 """
-function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)	
-	k0 = 2*pi/lambda*sqrt(eps)
-	# Call the propagator and add a phase imposed by the tilt
-	# Assumptions: Tilt is small, the additional phase is obtained by propagating
-	#			   all fields just with k0 to the tilted surface (only valid if diffraction effects are small)
-	E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)    
+    k0 = 2*pi/lambda*sqrt(eps)
+    # Call the propagator and add a phase imposed by the tilt
+    # Assumptions: Tilt is small, the additional phase is obtained by propagating
+    #              all fields just with k0 to the tilted surface (only valid if diffraction effects are small)
+    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Tilts:
-	E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
+    E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
     # More general: Any surface misalignments:
-	E0 .*= exp.(-1im*k0*surface) #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
-	return E0
+    E0 .*= exp.(-1im*k0*surface) #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
+    return E0
 end
 
 function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
-	# Diffract at the Disk. Only the disk is diffracting.
-	E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
-	# FFT the E-Field to spatial frequencies
-	#print(E0)
-	FFTW.fft!(E0)
-	#print(E0)
-	E0 = FFTW.fftshift(E0)
+    # Diffract at the Disk. Only the disk is diffracting.
+    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
+    # FFT the E-Field to spatial frequencies
+    #print(E0)
+    FFTW.fft!(E0)
+    #print(E0)
+    E0 = FFTW.fftshift(E0)
 
-	# This should now work with the global variable	
-	#minimum_Kx = 2*pi/(maximum(X)*2)
-	#maximum_Kx = minimum_Kx * (length(X)-1)/2
-	#coordsKx = -maximum_Kx:minimum_Kx:maximum_Kx
-	#minimum_Ky = 2*pi/(maximum(Y)*2)
-	#maximum_Ky = minimum_Ky * (length(Y)-1)/2
-	#coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
-	
-	# TODO: If maximum k is higher than k0, then it is not defined
-	#       what happens with this mode
-	#       We should give a warning and handle this here
-	#       At the moment the script will just also propagate with a loss for those components
-	# Propagate through space
-	k0 = 2*pi/lambda*sqrt(eps)
-	k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
-	E0 = E0 .* exp.(-1im*k_prop*dz)
-	# Backtransform
-	E0 = FFTW.ifftshift(E0)
-	FFTW.ifft!(E0)
-	return E0
+    # This should now work with the global variable 
+    #minimum_Kx = 2*pi/(maximum(X)*2)
+    #maximum_Kx = minimum_Kx * (length(X)-1)/2
+    #coordsKx = -maximum_Kx:minimum_Kx:maximum_Kx
+    #minimum_Ky = 2*pi/(maximum(Y)*2)
+    #maximum_Ky = minimum_Ky * (length(Y)-1)/2
+    #coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
+    
+    # TODO: If maximum k is higher than k0, then it is not defined
+    #       what happens with this mode
+    #       We should give a warning and handle this here
+    #       At the moment the script will just also propagate with a loss for those components
+    # Propagate through space
+    k0 = 2*pi/lambda*sqrt(eps)
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+    E0 = E0 .* exp.(-1im*k_prop*dz)
+    # Backtransform
+    E0 = FFTW.ifftshift(E0)
+    FFTW.ifft!(E0)
+    return E0
 end
 
 """
 Propagator that assumes E0 is already in momentum space.
 """
 function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
-	# Propagate through space
-	k0 = 2*pi/lambda*sqrt(eps)
-	k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
-	E0 = E0 .* exp.(-1im*k_prop*dz)
+    # Propagate through space
+    k0 = 2*pi/lambda*sqrt(eps)
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+    E0 = E0 .* exp.(-1im*k_prop*dz)
 
-	# Transform to position space
-	E0 = FFTW.ifftshift(E0)
-	FFTW.ifft!(E0)
+    # Transform to position space
+    E0 = FFTW.ifftshift(E0)
+    FFTW.ifft!(E0)
 
-	# Diffract at the Disk. Only the disk is diffracting.	
-	E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
+    # Diffract at the Disk. Only the disk is diffracting.   
+    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
 
-	# Kick (tilt)
-	if tilt_x != 0 || tilt_y != 0
-		E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
-	end
-	
-	# FFT the E-Field to spatial frequencies / momentum space
-	FFTW.fft!(E0)
-	E0 = FFTW.fftshift(E0)
+    # Kick (tilt)
+    if tilt_x != 0 || tilt_y != 0
+        E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
+    end
+    
+    # FFT the E-Field to spatial frequencies / momentum space
+    FFTW.fft!(E0)
+    E0 = FFTW.fftshift(E0)
 
-	return E0
+    return E0
 end
 
 """
