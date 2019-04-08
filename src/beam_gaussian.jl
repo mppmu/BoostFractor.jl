@@ -7,8 +7,6 @@
 #
 
 
-module BeamGaussian
-
 export gauss_profile
 
 function gauss_profile(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5, z = 0.000000001, omega0 = 0.1, f = 10e9)
@@ -24,6 +22,4 @@ function gauss_profile(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5, z = 0.000000001, o
     Psi(z)   = atan(z/zR)
         
    return omega0/omega(z) .* exp.(-radius.^2/omega(z)^2) .* exp.(-1im .* (k*z .+ k*radius.^2. /(2*R.(z)) .- Psi.(z))) 
-end
-
 end

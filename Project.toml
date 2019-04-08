@@ -1,0 +1,11 @@
+name = "BoostFractor"
+uuid = "222d2961-0b53-58be-99ce-9613a82efb32"
+
+[deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

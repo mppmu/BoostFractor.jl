@@ -6,12 +6,8 @@
 #   Stefan Knirck
 #
 
-module BeamCoupling
-
 export matching_ratio, unnormalized_match, antenna
 
 function unnormalized_match(Eout, Eantenna; dx=0.01, dy=0.01)
     return sum(Eout.*conj(Eantenna)).*dx.*dy
-end
-
 end

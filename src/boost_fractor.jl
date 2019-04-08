@@ -6,11 +6,8 @@
 #   Stefan Knirck
 #
 
-module BoostFractor
-
 export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, propagator1D,init_coords
 
-using FFTW
 
 mutable struct SetupBoundaries
 	distance::Array{Float64,1} # = [15e-3, 5e-3,0]
@@ -367,9 +364,4 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     e1 = E0.*exp(-1im*k_prop*dz*sqrt(eps))
     return e1
     
-end
-
-
-
-
 end

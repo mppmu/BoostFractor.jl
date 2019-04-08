@@ -1,5 +1,6 @@
-# BoostFractor
-MadMax electrodynamics simulation BoostFractor.
+# BoostFractor.jl
+
+MadMax electrodynamics simulation in Julia.
 
 ## General Remarks
 For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
