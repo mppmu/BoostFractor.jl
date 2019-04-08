@@ -6,17 +6,19 @@ MadMax electrodynamics simulation in Julia.
 For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
 
 ## Prequisits
-Packages: ``FFTW, DSP``.
 
 To install packages just run
 ```julia
-import Pkg;
-
-Pkg.add("FFTW");
-Pkg.add("DSP");
+julia> using Pkg
+julia> pkg"add git@github.com:mppmu/BoostFractor.jl.git"
 ```
 
-You migh find useful ``PyPlot, IJulia, JLD``...
+You might find it useful to also add other Julia packages, e.g.
+
+```julia
+julia> using Pkg
+julia> pkg"add Plots PyPlot IJulia JLD"
+```
 
 ## Usage
 The following are minimal working examples
@@ -26,10 +28,10 @@ Create a folder for your project.
 For now, download everything in the Master branch and move it to a subfolder of your project and call it "BoostFractor". Then use it in your code via
 
 ```julia
-using DSP # needed to add a custom load path
+using BoostFractor
 
+using Distributed
 @everywhere begin # This executes the following on all your processes.
-    push!(LOAD_PATH, "./BoostFractor");
     using BoostFractor
 end
 ```
