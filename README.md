@@ -48,7 +48,7 @@ end
 # to study looks like
 # @everywhere creates one for each process
 
-@everywhere sbdry = SetupBoundaries()
+@everywhere sbdry = SeedSetupBoundaries(1)
 
 # We need to define the permittivity of all areas and the reflection
 # coefficient of the boundaries
