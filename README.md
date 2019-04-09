@@ -86,7 +86,7 @@ result = @sync @distributed (zcat) for i in 1:length(Deps)
     #1D (if you calculate in 1D, use (vcat) above instead of (zcat) )
     #dancer(0,200,sbdry; prop=propagator1D,f=10e9,Xset=[0.0000001],Yset=[0.0000001])
     #3D    
-    dancer(0,200,sbdry; prop=propagator,f=10e9,Xset=-0.5:0.005:0.5,Yset=-0.5:0.005:0.5)
+    dancer(0,200,sbdry; prop=propagator,f=10e9,Xset=-0.5:0.01:0.5,Yset=-0.5:0.01:0.5)
 end
 ```
 Signature of dancer()-function:
@@ -111,7 +111,7 @@ end
 
 Until now I always used a = 0, but a different one might be also useful, but increase the runtime a bitalthough I did not study this due to time. For one disk + mirror I recommend ``nmax = 200``. 
 Empirically for more disks: for 5 Sapphire disks ``nmax=1600`` seems still good enough. For higher number it should roughly scale quadratically with the number of disks, so ``nmax=25600`` is good for 20 disks.
-The X and Y grid should be set in such a way that the resolutition is at least half a wavelength, i.e. for this example it should be sufficient to also just use ``Xset=-0.5:0.01:0.5,Yset=-0.5:0.01:0.5``, since the wavelength at 10GHz is roughly 3cm.
+The X and Y grid should be set in such a way that the resolutition is at least half a wavelength, i.e. for this example it should be sufficient to just use ``Xset=-0.5:0.01:0.5,Yset=-0.5:0.01:0.5``, since the wavelength at 10GHz is roughly 3cm.
 
 The ``results`` array should contain now an 3d array, the last axis corresponds to the different phase depths, the first two to the X and Y axis.
 
