@@ -27,18 +27,19 @@ julia> pkg"add Plots PyPlot IJulia JLD"
 The following are minimal working examples
 
 ### Loading of the package in your code
-Create a folder for your project.
-For now, download everything in the Master branch and move it to a subfolder of your project and call it "BoostFractor". Then use it in your code via
-
+After the installation above just run
 ```julia
 using BoostFractor
+```
 
+or if you want to use it one many processes / threds the same time
+```
 using Distributed
 @everywhere begin # This executes the following on all your processes.
     using BoostFractor
 end
 ```
-If you like to use the Gaussian Beam, ... stuff in the other files I have added, just add the analogous "using" line in your script.
+
 
 ### Single Dielectric Disk infront of a Mirror
 ```julia
