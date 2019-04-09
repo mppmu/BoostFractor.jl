@@ -33,7 +33,7 @@ using BoostFractor
 ```
 
 or if you want to use it one many processes / threds the same time
-```
+```julia
 using Distributed
 @everywhere begin # This executes the following on all your processes.
     using BoostFractor
