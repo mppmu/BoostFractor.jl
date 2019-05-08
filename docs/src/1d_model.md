@@ -3,7 +3,7 @@
 The `src` directory contains a file containing a 1D calculation for various disk spacings.
 
 You can use it via
-'''julia
+```julia
 using PyCall
 A1DM = pyimport("Analytical1DMod")
 frequencies = 10:0.0001:30
@@ -11,8 +11,8 @@ spacings = [2,3,4,5,6,2,3,4,5,6,7,0]*1e-3 # First value is distance between mirr
 ref, ax = A1DMM.disk_system(Array{Float64}(frequencies*1e9),
         num_disk=11, disk_epsilon=25, mirror=true,
         spacings=ones(12)*1e-2)
+```
 
-'''
 The last spacing is the distance to the antenna and only changes the phase of the result.
 The disk thickness is 1mm, but can be changed (see code...).,
 
