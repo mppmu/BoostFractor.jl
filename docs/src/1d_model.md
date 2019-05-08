@@ -13,11 +13,16 @@ ref, ax = A1DMM.disk_system(Array{Float64}(frequencies*1e9),
         spacings=ones(12)*1e-2)
 ```
 
+
 The last spacing is the distance to the antenna and only changes the phase of the result.
 The disk thickness is 1mm, but can be changed (see code...).,
 
+
+
 `ref` contains an array with the _amplitude reflecitivtiy_ of the system depending on frequency.
+
 `ax` contains an array with the _amplitude boost factor_ of the system depending on frequency.
+
 To get the reflected power / power boost, the absolute value of these quantities need to be squared.
 To get the group delay, you have to take numerically the derivative of the phase of the reflecticity over the angular frequency.
 
