@@ -8,9 +8,9 @@ using PyCall
 A1DM = pyimport("Analytical1D")
 frequencies = 10:0.0001:30
 spacings = [2,3,4,5,6,2,3,4,5,6,7,0]*1e-3 # First value is distance between mirror and first disk
-ref, ax = A1DMM.disk_system(Array{Float64}(frequencies*1e9),
+ref, ax = A1DM.disk_system(Array{Float64}(frequencies*1e9),
         num_disk=11, disk_epsilon=25, mirror=true,
-        spacings=ones(12)*1e-2)
+        spacings=spacings)
 ```
 
 
