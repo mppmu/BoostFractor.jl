@@ -94,9 +94,9 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     
     fields = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
     #fields = SharedArray(Complex{Float64},  length(bdry.distance), 2, length(X), length(Y))
-    #                       number of boundaries --^           ^           ^
-    #                       number of propagation directions --^           ^
-    #                       dimensions of the fields at each position -----^
+    #                       number of regions -----^                ^              ^
+    #                       number of propagation directions -------^              ^
+    #                       dimensions of the fields at each position -------------^
 
     # Pre-allocate memory
     if immediatesum
