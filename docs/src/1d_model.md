@@ -32,7 +32,7 @@ In order to compare our simulations, I think it is good to use always the same d
 
 Work on the optimizations should focus on improving the optimization procedure itself together with the proof of principle setup or learning about the 1D model.
 
-You can use any Python or Julia optimization package to optimize boost factors.
+Using above code snippet, you can use any Python or Julia optimization package to optimize boost factors.
 
 For example you can run
 
