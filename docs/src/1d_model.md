@@ -90,7 +90,10 @@ Of course, you can do this more sophiscticated, e.g. if you get negative spacing
 ```julia
 lower = zeros(20) # negative spacings would be a bit, well, impractical..
 upper = 0.036*ones(20) # more than 2 wavelengths really isn't neccessary...
-optim_result = Optim.optimize(minimizeme, lower, upper, init,  Fminbox(NelderMead()), Optim.Options(x_tol=100e-9, f_tol=1e-3,g_tol=1e-5,show_trace=true,show_every=100,time_limit=43200. ) )
+optim_result = Optim.optimize(minimizeme, lower, upper, init,  
+                              Fminbox(NelderMead()), 
+                              Optim.Options(x_tol=100e-9, f_tol=1e-3,g_tol=1e-5,
+                                            show_trace=true,show_every=100,time_limit=43200. ) )
 ```
 For more details see [the `Optim` documentation](http://julianlsolvers.github.io/Optim.jl/stable/).
 
