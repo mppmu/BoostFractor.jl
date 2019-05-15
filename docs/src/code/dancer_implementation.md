@@ -12,13 +12,13 @@ Regions:              [  1    ,   2   ,   3   ,   4   ,  ...                ]
 
 ```
 
-Arrays refering to **boundaries** are:
+Arrays with indices refering to **boundaries** are:
 ```
 # in general:
 SetupBoundaries.r
 ```
 
-Arrays refering to **regions** are:
+Arrays with indices refering to **regions** are:
 ```
 # in general:
 SetupBoundaries.distance
