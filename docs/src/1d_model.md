@@ -67,7 +67,8 @@ function minimizeme(arr)
     push!(distances,0)
     
     # We run the 1D code for the frequencies where we want to maximize the boost 
-    ref, ax = A1DM.disk_system(Array{Float64}(frequencies*1e9)[cond], num_disk=20, disk_epsilon=24, spacings=distances)
+    ref, ax = A1DM.disk_system(Array{Float64}(frequencies*1e9)[cond], 
+                               num_disk=20, disk_epsilon=24, spacings=distances)
     
     # Take the minimum value of the boost in that region and
     # return it after multiplying with (-1).
@@ -76,7 +77,9 @@ function minimizeme(arr)
 end
 
 # Do the optimization
-optim_result = Optim.optimize(minimizeme, init, NelderMead(), Optim.Options(x_tol=100e-9, f_tol=1e-2,g_tol=1e-5,show_trace=true,show_every=100,iterations=Int(5e4) ) )
+optim_result = Optim.optimize(minimizeme, init, NelderMead(), 
+                              Optim.Options(x_tol=100e-9, f_tol=1e-2,g_tol=1e-5,show_trace=true,
+                              show_every=100,iterations=Int(5e4) ) )
 # Get the resulting spacings
 optimized_spacings = Optim.minimizer(optim_result)
 
