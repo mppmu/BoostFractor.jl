@@ -16,10 +16,6 @@ Arrays refering to **boundaries** are:
 ```
 # in general:
 SetupBoundaries.r
-
-# in dancer() function:
-fields
-
 ```
 
 Arrays refering to **regions** are:
@@ -31,6 +27,8 @@ SetupBoundaries.distance
                .relative_tilt_y
                .relative_surfaces
 
+# in dancer() function:
+fields
 ```
 
 Before the call of the propagator the `rightmoving` fields are those leaving a boundary to the right, yet upropagated. The `leftmoving` fields are those leaving a boundary to the left, yet upropagated. Therefore in every gap in each step the `rightmoving` fields go from left to right (left leg) and vice versa.
