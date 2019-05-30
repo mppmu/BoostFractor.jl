@@ -103,7 +103,7 @@ def disk_system(freq, tand=0, num_disk=5, non_uniform_surfaceloss=None, spacings
     else:
         gamma = 0
         
-    print axion_out
+    # print(axion_out)
         
     if non_uniform_surfaceloss is None:
         
