@@ -99,3 +99,13 @@ For more details see [the `Optim` documentation](http://julianlsolvers.github.io
 
 ## ToDo
 It remains to clean up the 1D model file, translate it to julia such that maybe a automatic differentiation could be applied. This could be very, very useful to do optimizations of the disks spacings.
+
+
+## Trouble-Shooting
+Note, that for this to work, it may heavily depend on your Julia and Python version(s) installed.
+
+It might be neccessary to add at the beginning of your Julia file: 
+```
+file:pushfirst!(PyVector(pyimport("sys")."path"), "") 
+```
+in order to import the python file from the local directory. 
