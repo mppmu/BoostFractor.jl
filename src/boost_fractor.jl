@@ -1,10 +1,11 @@
+
 #
-#   BoostFractor Beam Propagation Core (work-in-progress)
+#   BoostFractor Beam Propagation Core + PaD addition (work-in-progress)
 #
-#   V: 2019-04-05
+#   V: 2019-04-05 (core) + 2019-06-09 (add-on)
 #
 #   Stefan Knirck
-#
+#		add-on: Dominik Bergermann
 
 export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, propagator1D,init_coords
 
@@ -61,7 +62,7 @@ global minimum_Ky = 2*pi/(maximum(Y)*2)
 global maximum_Ky = minimum_Ky * (length(Y)-1)/2
 global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
 
-function init_coords(Xset,Yset)
+function init_coords(Xset,Yset)	
     global X=Xset
     global Y=Yset
     global minimum_Kx = 2*pi/(maximum(X)*2)
@@ -94,9 +95,9 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     
     fields = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
     #fields = SharedArray(Complex{Float64},  length(bdry.distance), 2, length(X), length(Y))
-    #                       number of boundaries --^           ^           ^
-    #                       number of propagation directions --^           ^
-    #                       dimensions of the fields at each position -----^
+    #                       number of regions -----^                ^              ^
+    #                       number of propagation directions -------^              ^
+    #                       dimensions of the fields at each position -------------^
 
     # Pre-allocate memory
     if immediatesum
@@ -187,6 +188,129 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
         end
         # n is the iteration count
         n += 1
+		#print("\r Subprogress $(round(n*100/nmax,digits=1))% \r") #neat for unparalleled calcs
+    end
+
+    # Dance Outro    
+    # The summation at the end is to give the opportunity to intelligently sum
+    # since different rays might have very different orders of magnitude
+    # The other reason is, that we are able to return the different components
+    # such that we can get immediate access to less accurate results
+    # TODO: See if Julia is really using the most intelligent summing strategy
+    if returnsum
+        return sum(reverse(Eout, dims = 3), dims = 3)[:,:,1]
+    else        
+        return Eout
+    end
+end
+
+#Implementation of the propagation around the disc. To be used in the same way as the dancer-function.
+#NOTE: Only supports untilted discs with no surface roughness as of now.
+
+function dancer_pad(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnsum=true, immediatesum=true)
+    init_coords(Xset, Yset);    
+
+    rightmoving = 1
+    leftmoving = 2
+    
+    fields = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
+    #fields = SharedArray(Complex{Float64},  length(bdry.distance), 2, length(X), length(Y))
+    #                       number of regions -----^                ^              ^
+    #                       number of propagation directions -------^              ^
+    #                       dimensions of the fields at each position -------------^
+
+    # Pre-allocate memory
+    if immediatesum
+        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),1))
+    else
+        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),nmax+1))
+    end
+
+    # TODO: propagation through and emission from last bdry to the right
+    if reflect == nothing
+        if emit == nothing      
+            fields = dance_intro(bdry,X,Y)
+        else
+            fields = emit
+        end
+        # Eout =
+    else
+        fields[length(bdry.distance), leftmoving, :, :] = reflect
+        # Eout =
+    end
+
+    c = 299792458.
+    lambda = c/f
+
+    n = 0   # Iteration Count
+    a = 1.0 # Maximum Field Amplitude in the iteration    
+
+    out = [abs(x^2 + y^2) >= diskR^2 for x in X, y in Y] #required for cutting
+    ins = [abs(x^2 + y^2) <  diskR^2 for x in X, y in Y]
+    for j in 1:length(bdry.distance), k in 1:2
+        fields[j,k,:,:] .*= ins #axion induced fields are generated across whole grid. cut the outer part
+    end
+    # The measure of music (Takt) .... da capo al fine
+    while n <= nmax && a >= amin
+        backupfields = copy(fields) #part that gets propagated outside, only outer part required (cut when needed, faster. optimisable?)
+        for i in 1:length(bdry.r)
+            if i > 1
+                if abs(bdry.eps[i-1]) > 1 #cut accordingly if inside of of disc
+                    fields[i-1,rightmoving,:,:] .*= ins
+                    fields[i-1,rightmoving,:,:] = pfad(fields[i-1,rightmoving,:,:], bdry.distance[i-1], diskR, bdry.eps[i-1], bdry.relative_tilt_x[i-1], bdry.relative_tilt_y[i-1], bdry.relative_surfaces[i-1,:,:], lambda) .* ins
+                else
+                    fields[i-1,rightmoving,:,:] = pfad(fields[i-1,rightmoving,:,:], bdry.distance[i-1], diskR, bdry.eps[i-1], bdry.relative_tilt_x[i-1], bdry.relative_tilt_y[i-1], bdry.relative_surfaces[i-1,:,:], lambda)
+                end
+            end
+            if i < length(bdry.r)
+                if abs(bdry.eps[i]) > 1 #needs to be adjusted if planning on having other medium than vacuum around discs
+                    fields[i,leftmoving,:,:] .*= ins
+                    fields[i,leftmoving,:,:] = pfad(fields[i,leftmoving,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda) .* ins
+                else
+                    fields[i,leftmoving,:,:] = pfad(fields[i,leftmoving,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda)
+                end
+            end
+            # Reflection & Transmission
+            if i == 1 #leftmost
+                fields[i,leftmoving,:,:] .*= -bdry.r[i]
+            elseif i == length(bdry.r) #rightmost
+                if immediatesum             
+                    Eout[:,:,1] .+= (1+bdry.r[i]) .* fields[i-1, rightmoving,:,:]
+                else            
+                    Eout[:,:,n+1] = (1+bdry.r[i]) .* fields[i-1, rightmoving,:,:]
+                end
+                fields[i-1,rightmoving,:,: ] .*= bdry.r[i]
+            else #standard
+                FieldArrivedLeft = copy(fields[i-1, rightmoving,:,:])
+                if abs(bdry.eps[i]) > 1
+                    fields[i-1, rightmoving,:,:] .*= ins #only the inner part
+                    fields[i-1, rightmoving,:,:] .*= bdry.r[i] #gets reflected
+                    fields[i-1, rightmoving,:,:] .+= (1-bdry.r[i]) .* fields[i, leftmoving,:,:] 
+                    fields[i-1, rightmoving,:,:] .+= backupfields[i,leftmoving,:,:] .* exp(-1im*conj(sqrt((2pi/lambda)^2))*bdry.distance[i]*sqrt(1)) .* out
+
+                    fields[i,leftmoving,:,:] .*= -bdry.r[i] #as this is already only the inner part (see above), no need to seperate
+                    fields[i,leftmoving,:,:] .+= (1+bdry.r[i]) .* FieldArrivedLeft .* ins
+                    fields[i,leftmoving,:,:] .+= FieldArrivedLeft .* out
+                else
+                    fields[i-1,rightmoving,:,:] .*= bdry.r[i]
+                    fields[i-1,rightmoving,:,:] .+= (1-bdry.r[i]) .* fields[i,leftmoving,:,:] .* ins
+                    fields[i-1,rightmoving,:,:] .+= fields[i,leftmoving,:,:] .* out
+
+                    fields[i,leftmoving,:,:] .*= ins
+                    fields[i,leftmoving,:,:] .*= -bdry.r[i]
+                    fields[i,leftmoving,:,:] .+= (1+bdry.r[i]) .* FieldArrivedLeft .* ins
+                    fields[i,leftmoving,:,:] .+= backupfields[i-1,rightmoving,:,:] .* exp(-1im*conj(sqrt((2pi/lambda)^2))*bdry.distance[i-1]*sqrt(1)) .* out
+                end
+            end
+        end
+        lmv = copy(leftmoving) #direction change
+        leftmoving = rightmoving
+        rightmoving = lmv
+        if amin != 0
+            a = maximum(abs.(fields))
+        end
+        n += 1
+        #print("\r Subprogress $(round(n*100/nmax,digits=1))% \r") #neat for unparalleled calcs
     end
 
     # Dance Outro    
@@ -263,7 +387,7 @@ function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries
         t_left = 1. + r_left
         t_right = 1 .+ r_right
     else
-        # Initilize reflection coefficients according to disk model
+        # Initialize reflection coefficients according to disk model
         ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
         r_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*ref
         r_right = r_left
@@ -272,6 +396,8 @@ function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries
     end
     return r_left, r_right, t_left, t_right
 end
+
+
 
 ## Propagators ########################################################################################
 
@@ -365,4 +491,20 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     e1 = E0.*exp(-1im*k_prop*dz*sqrt(eps))
     return e1
     
+end
+
+"""
+This propagator is used for propagation around the disc.
+"""
+function pfad(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda) #prop for around disk
+    k0 = 2*pi/lambda*sqrt(eps)                                     #performs propagator and propagatorNoTilts w/o cutting
+    FFTW.fft!(E0)                                                  #necessary cutting is performed in the dancer_pad
+    E0 = FFTW.fftshift(E0)
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+    E0 = E0 .* exp.(-1im*k_prop*dz)
+    E0 = FFTW.ifftshift(E0)
+    FFTW.ifft!(E0)
+    E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
+    E0 .*= exp.(-1im*k0*surface) #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
+    return E0
 end
