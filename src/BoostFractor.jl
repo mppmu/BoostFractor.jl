@@ -6,7 +6,14 @@ module BoostFractor
 
 using FFTW
 
+# Gerneal Interface
 include("boost_fractor.jl")
+
+# Differnt algorithms
+include("boost_fractor_recurprop.jl")
+include("boost_fractor_transformer.jl")
+
+# Some convenient tools
 include("beam_gaussian.jl")
 include("beam_coupling.jl")
 
