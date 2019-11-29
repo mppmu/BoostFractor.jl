@@ -29,6 +29,9 @@ global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
 # Indexing function to get sub-matrices
 global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
 
+"""
+Initialize waveguide-modes for a 3D calculation
+"""
 function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
     global M, L = Mmax,Lmax
     global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
@@ -46,6 +49,9 @@ function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
     #global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
 end
 
+"""
+Initialize 1D modes for a 1D calculation.
+"""
 function init_modes_1d()
     global M = 1
     global L = 0
@@ -63,7 +69,9 @@ end
 
 # ---------------------- Functionality ------------------------------------------------
 
-
+"""
+Calculate the transverse k and field distribution for a dielectric waveguidemode
+"""
 function waveguidemode(m,l; X=-0.5:0.007:0.5,  Y=-0.5:0.007:0.5,dx=0.007,dy=dx, diskR=0.15, k0=2pi/0.03)
     RR = [sqrt(x^2 + y^2) for x in X, y in Y]
     Phi = [atan(y,x) for x in X, y in Y]
@@ -76,9 +84,13 @@ function waveguidemode(m,l; X=-0.5:0.007:0.5,  Y=-0.5:0.007:0.5,dx=0.007,dy=dx, 
     return ktransversal, pattern
 end
 
+"""
+Calculate the vector of mode-coefficients that describe the uniform axion-induced
+field and that is normalized to power 1.
+"""
 function axion_induced_modes(;B=ones(length(X), length(Y)), velocity_x=0, diskR=0.15,f=20e9)
 
-    # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
+    # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
         B = Array{Complex{Float64}}(B)
         c = 299792458.
@@ -102,8 +114,14 @@ function axion_induced_modes(;B=ones(length(X), length(Y)), velocity_x=0, diskR=
     return modes_intital
 end
 
-# Get the mode coefficients for a field pattern and vice versa
+"""
+Get the mode coefficients for a given field distribution E(x,y)
+"""
 field2modes(pattern;diskR=0.15) = axion_induced_modes(;B=pattern,diskR=diskR)
+
+"""
+Get the field distribution E(x,y) for a given vector of mode coefficients
+"""
 function modes2field(modes)
     result = Array{Complex{Float64}}(zeros(length(X), length(Y)))
     for m in 1:M, l in -L:L
@@ -115,34 +133,36 @@ end
 
 # Mode Mixing Matrix for the Propagation in a gap
 function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_air=(eps==1), onlydiagonal=false, prop=propagator)
-    # If the propagated length is zero, the modes do not mix.
-    #if dz==0
-    #    return id
-    #end
-
     matching_matrix = Array{Complex{Float64}}(zeros(M*(2L+1),M*(2L+1)))
 
     k0 = 2pi/lambda*sqrt(eps)
+
+    # Define the propagation function
     propfunc = nothing # initialize
     if is_air
+        # In air use the propagator we get
         function propagate(x)
             return prop(copy(x), dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
         end
         propfunc = propagate
-    else # it is disk
+    else
+        # In the disk the modes are eigenmodes, so we only have to apply the
+        # inaccuracies and can apply the propagation later seperately
         propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y].*surface
     end
 
+    # Calculate the mixing matrix
     for m_prime in 1:M, l_prime in -L:L
+        # Propagated fields of mode (m_prime, l_prime)
         propagated = propfunc(mode_patterns[m_prime,l_prime+L+1,:,:])
-        ##println(sum(mode_patterns[l_prime,m_prime+M+1,:,:].-propagated))
+
         for m in (onlydiagonal ? [m_prime] : 1:M), l in (onlydiagonal ? [l_prime] : -L:L)
+
+            # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
             matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1] =
                     sum( conj.(mode_patterns[m,l+L+1,:,:]) .* propagated ) #*dx*dy
-            v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
-            #if l==l_prime && m == m_prime && l == 1 && m == 0 && is_air && dz > 0
-            #    println("Mode Conversion Loss: $v")
-            #end
+
+            #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
         end
     end
 
@@ -155,11 +175,12 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_
         end
         # It is important to note the multiplication from the left
         matching_matrix = propagation_matrix*matching_matrix
-        # TODO: This only takes surface roughness at the end of the propagation into account, not at its
-        # start. General problem in all the codes so far.
     end
 
     return matching_matrix
+
+    # TODO: This only takes surface roughness at the end of the propagation into account, not at its
+    # start. General problem in all the codes so far.
 end
 
 
@@ -242,6 +263,11 @@ function transformer(bdry::SetupBoundaries; f=10.0e9, velocity_x=0, prop=propaga
         We calculate T_{m-1}^m first, and then expand iteratively to get T_{n}^m.
         Notice from eq. (4.9) that going one region down is a multiplication from the right, not the left, e.g.
         T_3^5 = T_4^5 G_3 P_3.
+
+        I agree, iterating in reverse order and changing before the indices to
+        reverse, is not neccessary. Though, like this "s" follows the same Indexing
+        than in the theoretical foundations paper and we can call the function with
+        a bdry structure having the mirror at the lowest index.
     =#
     for s in (Nregions-1):-1:1
         # Add up the summands of (M[2,1]+M[1,1]) E_0
