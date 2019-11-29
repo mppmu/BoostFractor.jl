@@ -148,7 +148,8 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_
     else
         # In the disk the modes are eigenmodes, so we only have to apply the
         # inaccuracies and can apply the propagation later seperately
-        propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y].*exp(-1im*surface)
+        propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y].*exp.(-1im*k0*surface)
+        # Applying exp element-wise to the surface is very important otherwise it is e^M with M matrix
     end
 
     # Calculate the mixing matrix
