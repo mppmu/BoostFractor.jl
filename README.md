@@ -5,7 +5,8 @@ MadMax electrodynamics simulation in Julia.
 ## General Remarks
 For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
 
-Note that also a [**1D code**](docs/src/1d_model.md) is available.
+Note that also a [**1D code**](docs/src/1d_model.md) including some basic optimization
+examples is available.
 
 ## Prequisits
 
@@ -14,7 +15,7 @@ To install packages just run
 julia> using Pkg
 julia> pkg"add https://github.com/mppmu/BoostFractor.jl.git"
 ```
-If this does not work replace the URL by whatever is shown when you click the green "Clone or Download" button on the top right. 
+If this does not work replace the URL by whatever is shown when you click the green "Clone or Download" button on the top right.
 
 <!--- julia> pkg"add git@github.com:mppmu/BoostFractor.jl.git" -->
 
@@ -78,13 +79,13 @@ result = @sync @distributed (zcat) for i in 1:length(Deps)
     deps = Deps[i]
     dnu = pi # In my codes this gets optimized for maximal boost in 1D before; its left out here for simplicitly and just set to pi
     print("Running dEps = $deps (dNu = $dnu)... \n")
-    
+
     # Set the distances (the wavelength in free space is 30mm, in the medium 10mm (free space devided by sqrt(epsilon))
     sbdry.distance = [(dnu)*3e-2/(2*pi), Deps[i]*1e-2/(2*pi),0];
-    
-    
+
+
     # We use the "dancer" algorithm to calculate our result (the only one I uploaded to GitHub so far and the one I usually use)
-        
+
     #1D (if you calculate in 1D, use (vcat) above instead of (zcat) )
     #dancer(0,200,sbdry; prop=propagator1D,f=10e9,Xset=[0.0000001],Yset=[0.0000001])
     #3D    
@@ -111,7 +112,7 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
 end
 ```
 
-Until now I always used a = 0, but a different one might be also useful, but increase the runtime a bitalthough I did not study this due to time. For one disk + mirror I recommend ``nmax = 200``. 
+Until now I always used a = 0, but a different one might be also useful, but increase the runtime a bitalthough I did not study this due to time. For one disk + mirror I recommend ``nmax = 200``.
 Empirically for more disks: for 5 Sapphire disks ``nmax=1600`` seems still good enough. For higher number it should roughly scale quadratically with the number of disks, so ``nmax=25600`` is good for 20 disks.
 The X and Y grid should be set in such a way that the resolutition is at least half a wavelength, i.e. for this example it should be sufficient to just use ``Xset=-0.5:0.01:0.5,Yset=-0.5:0.01:0.5``, since the wavelength at 10GHz is roughly 3cm.
 
@@ -124,4 +125,4 @@ Note that one can iterate over frequency instead of disk phase depth in almost e
 
 1D Model: https://arxiv.org/abs/1612.07057
 
-Transfer Matrices in 3D: http://emlab.utep.edu/ee5390cem.htm 
+Transfer Matrices in 3D: http://emlab.utep.edu/ee5390cem.htm
