@@ -6,7 +6,7 @@
 # Stefan Knirck
 #
 
-export dancer, dance_intro
+export dancer, dance_intro, cheerleader
 
 """
 Propagates the fields through the system
