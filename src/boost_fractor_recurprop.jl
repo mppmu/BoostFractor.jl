@@ -193,7 +193,6 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     lambda = c/f
 
     init_coords(Xset, Yset);
-    apply_surfaces!(bdry, lambda)
 
     # Pre-allocate memory
     # Note that fields[0,:,:] contains the fields leaving the system on the left
