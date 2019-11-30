@@ -3,7 +3,7 @@
 MadMax electrodynamics simulation in Julia.
 
 ## General Remarks
-For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
+<!--For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.-->
 
 Note that also a [**1D code**](docs/src/1d_model.md) including some basic optimization
 examples is available.
@@ -84,7 +84,7 @@ result = @sync @distributed (zcat) for i in 1:length(Deps)
     sbdry.distance = [(dnu)*3e-2/(2*pi), Deps[i]*1e-2/(2*pi),0];
 
 
-    # We use the "dancer" algorithm to calculate our result (the only one I uploaded to GitHub so far and the one I usually use)
+    # We use the "dancer" algorithm to calculate our result
 
     #1D (if you calculate in 1D, use (vcat) above instead of (zcat) )
     #dancer(0,200,sbdry; prop=propagator1D,f=10e9,Xset=[0.0000001],Yset=[0.0000001])
