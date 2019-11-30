@@ -1,6 +1,6 @@
 <img src="docs/boost_fractor_logo.png" alt="BoostFractor" width=300>
 
-# BoostFractor.jl
+# <img src="docs/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl-->
 
 MadMax electrodynamics simulation in Julia.
 
