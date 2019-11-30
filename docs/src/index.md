@@ -13,9 +13,9 @@ All 3D Codes below generalize also to 1D, but may be less performant.
 #### Recursive (Fourier) Propagation
 Iteratively propagate electromagnetic fields between dielectric interfaces.
 Implementations:
- * [Dancer](3d_algorithms.md#dancer)
+ * [Dancer](3d_algorithms.md#dancer_and_cheerleader)
  <!-- --->
- * [Cheerleader](3d_algorithms.md#cheerleader): somewhat more elegant implementation, factor 2 faster than dancer
+ * [Cheerleader](3d_algorithms.md#dancer_and_cheerleader): somewhat more elegant implementation, factor 2 faster than dancer
 
 
 #### Mode Matching

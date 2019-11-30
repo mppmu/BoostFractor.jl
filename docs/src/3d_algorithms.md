@@ -1,7 +1,7 @@
 # 3D Algorithms
 This little docfile describes the different algorithms and (in particular the differences) how to initilize them with a minimal example.
 
-## Dancer and Cheerleader Algorithms
+## Dancer and Cheerleader
 Iteratively propagate fields between boundaries for `nmax` iterations or until output amplitude is smaller than `amin`.
 
 Arguments
@@ -13,7 +13,7 @@ Arguments
 * `reflect`:        If nothing (standar value), the axion-induced signal is computed.
                     If set, this field defines a beam, for which the reflected beam will be calculated
 * `emit`:           If nothing (standar value), the axion-induced signal is computed.
-                    If set, this array contains all emitted fields 
+                    If set, this array contains all emitted fields
 * `Xset`, `Yset`:   Explicitly set the coordinate system for the fields
 * `returnsum`:      (only `dancer`) If false, the out-propagating contributions after each iteration will be returned, without summing.
 * `immediatesum`:   (only `dancer`) If false, the out-propagating contributions will be saved and summed up at the end.
@@ -38,7 +38,7 @@ sbdry.eps = Array{Complex{Float64}}([1,epsilon,1]) #<-- The mirror is not includ
 
 # Refelectivity
 R = -(1 - sqrt(epsilon)) / (1 + sqrt(epsilon))
-sbdry.r = Array{Complex{Float64}}([1.0, -R, R, 0]); 
+sbdry.r = Array{Complex{Float64}}([1.0, -R, R, 0]);
 # The order is: Ref. Coeff as seen from [inside the mirror to vacuum, vacuum to disk, disk to vacuum, vacuum to receiver (should be 0)]
 
 # We can also set relative tilts, etc.
@@ -123,7 +123,7 @@ sbdry.eps = [1e30,1.0,epsilon, 1.0] # <-- The mirror is included as a region wit
 sbdry.relative_tilt_x = zeros(4);
 sbdry.relative_tilt_y = zeros(4);
 #Surface Roughness
-sbdry.relative_surfaces = zeros(4,length(X),length(Y)); 
+sbdry.relative_surfaces = zeros(4,length(X),length(Y));
 
 # Initialize Coordiates and Modes
 init_coords(X,Y)
