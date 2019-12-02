@@ -1,6 +1,8 @@
-# <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl-->
+# <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl--> 
 
-MADMAX axion-electrodynamics simulation in Julia.
+[![Build Status](https://travis-ci.com/mppmu/BoostFractor.jl.svg?token=WaxBMkB9ZxeQMN9rjG57&branch=master)](https://travis-ci.com/mppmu/BoostFractor.jl)
+
+[MADMAX](https://madmax.mpp.mpg.de) axion-electrodynamics simulation in Julia.
 
 ## General Remarks
 <!--For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.-->
@@ -27,7 +29,7 @@ julia> pkg"add Plots PyPlot IJulia JLD"
 ```
 
 ## Usage
-The following are minimal working examples
+The following is a minimal working example.
 
 ### Loading of the package in your code
 After the installation above just run
@@ -119,10 +121,3 @@ The X and Y grid should be set in such a way that the resolutition is at least h
 The ``results`` array should contain now an 3d array, the last axis corresponds to the different phase depths, the first two to the X and Y axis.
 
 Note that one can iterate over frequency instead of disk phase depth in almost exactly the same way as described in the above example, by just replacing ``for i in 1:length(Deps)`` with ``for f in frequencies``, defining ``frequencies`` according to your needs, and setting ``..., f=f, ...`` when calling ``dancer()``.
-
-## For Development
-### Useful Links and literature
-
-1D Model: https://arxiv.org/abs/1612.07057
-
-Transfer Matrices in 3D: http://emlab.utep.edu/ee5390cem.htm
