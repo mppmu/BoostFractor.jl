@@ -44,7 +44,7 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
         if emit == nothing
-            fields = dance_intro(bdry,X,Y)
+            fields = dance_intro(bdry,X,Y;diskR=diskR)
         else
             fields = emit
         end
@@ -138,13 +138,14 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     end
 end
 
-function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9)
+function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
     # Initialize the variable we want to return
     fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
 
     # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
     if bfield == nothing
-        bfield = Array{Complex{Float64}}(ones(length(bdry.distance)+1, length(X), length(Y)))
+        # Make sure that there is only emission on the disk surfaces
+        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y] 
     end
     if velocity_x != 0
         c = 299792458.
@@ -229,7 +230,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
             bdrycpy = deepcopy(bdry)
             bdrycpy.distance = bdrycpy.distance[2:end]
             bdrycpy.eps = bdrycpy.eps[2:end]
-            emit[2:end,:,:,:] = dance_intro(bdrycpy,X,Y)
+            emit[2:end,:,:,:] = dance_intro(bdrycpy,X,Y,diskR=diskR)
         end
     else
         emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
