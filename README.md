@@ -31,7 +31,7 @@ julia> pkg"add Plots PyPlot IJulia JLD"
 ## Usage
 See the [examples](./examples) and [docs](docs/src/index.md).
 
-## Papers based on / describing this codes
+## Papers based on / describing these codes
 * S. Knirck, J. Schütte-Engel, A. Millar, J. Redondo, O. Reimann, A. Ringwald and F. Steffen,
   <i>A First Look on 3D Effects in Open Axion Haloscopes,</i>
   JCAP *1908*, 026 (2019)
