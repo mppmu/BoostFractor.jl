@@ -18,7 +18,7 @@ Implementations:
  <!-- --->
  * [Cheerleader](3d_algorithms.md#dancer_and_cheerleader): somewhat more elegant implementation, needs only half as much iterations
 
-
+More details on how the algorithms work can be found in [literature](resources.md).
 #### Mode Matching
 Solve boundary conditions on disk interfaces by matching (eigen)modes between the different regions. Since only a few modes need to be considered for a large boost factor, transfer matrices can be used.
  * [Transformer](3d_algorithms.md#transformer): Generalized Transfer-Matrix implementation in 3D.
