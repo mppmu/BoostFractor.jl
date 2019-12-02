@@ -10,7 +10,7 @@
 Note that also a [**1D code**](docs/src/1d_model.md) including some basic optimization
 examples is available.
 
-## Prequisits
+## Installation
 
 To install packages just run
 ```julia
