@@ -37,3 +37,4 @@ See the [examples](./examples) and [docs](docs/src/index.md).
   JCAP *1908*, 026 (2019)
   [doi:10.1088/1475-7516/2019/08/026](https://doi.org/10.1088/1475-7516/2019/08/026)
   [[arXiv:1906.02677 [physics.ins-det]]](https://arxiv.org/abs/1906.02677).
+
