@@ -27,7 +27,7 @@ julia> pkg"add Plots PyPlot IJulia JLD"
 ```
 
 ## Usage
-The following are minimal working examples
+The following is a minimal working example.
 
 ### Loading of the package in your code
 After the installation above just run
