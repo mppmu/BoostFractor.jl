@@ -16,12 +16,16 @@ Iteratively propagate electromagnetic fields between dielectric interfaces.
 Implementations:
  * [Dancer](3d_algorithms.md#dancer_and_cheerleader)
  <!-- --->
- * [Cheerleader](3d_algorithms.md#dancer_and_cheerleader): somewhat more elegant implementation, factor 2 faster than dancer
+ * [Cheerleader](3d_algorithms.md#dancer_and_cheerleader): somewhat more elegant implementation, needs only half as much iterations
 
 
 #### Mode Matching
 Solve boundary conditions on disk interfaces by matching (eigen)modes between the different regions. Since only a few modes need to be considered for a large boost factor, transfer matrices can be used.
  * [Transformer](3d_algorithms.md#transformer): Generalized Transfer-Matrix implementation in 3D.
+ 
+## Example Code
+The `examples` folder contains Jupyter notebooks with examples on how to use `BoostFractor`.
+A summary of the contained examples can be found [here](examples.md)
 
 ## Disk Position Optimization
 [1D Code](1d_model.md) also contains some examples how to use julia to do optimizations (of the disk spacings for example).
