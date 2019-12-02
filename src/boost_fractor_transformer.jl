@@ -1,7 +1,7 @@
 #
 # Transfomer Alogrithm for BoostFractor
 #
-# V: 2019-08-06
+# V: 2019-11-30
 #
 # Stefan Knirck
 #
