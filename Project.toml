@@ -4,7 +4,7 @@ uuid = "222d2961-0b53-58be-99ce-9613a82efb32"
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-FunctionZeros = "6244585c-6003-5c40-ba10-a7256650f39e"
+FunctionZeros = "b21f74c0-b399-568f-9643-d20f4fa2c814"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [extras]
