@@ -119,10 +119,3 @@ The X and Y grid should be set in such a way that the resolutition is at least h
 The ``results`` array should contain now an 3d array, the last axis corresponds to the different phase depths, the first two to the X and Y axis.
 
 Note that one can iterate over frequency instead of disk phase depth in almost exactly the same way as described in the above example, by just replacing ``for i in 1:length(Deps)`` with ``for f in frequencies``, defining ``frequencies`` according to your needs, and setting ``..., f=f, ...`` when calling ``dancer()``.
-
-## For Development
-### Useful Links and literature
-
-1D Model: https://arxiv.org/abs/1612.07057
-
-Transfer Matrices in 3D: http://emlab.utep.edu/ee5390cem.htm
