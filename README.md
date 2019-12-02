@@ -1,6 +1,6 @@
 # <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl-->
 
-MadMax electrodynamics simulation in Julia.
+MADMAX electrodynamics simulation in Julia.
 
 ## General Remarks
 <!--For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.-->
