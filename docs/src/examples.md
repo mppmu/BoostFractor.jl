@@ -8,6 +8,12 @@ File: `Beam Shapes.ipynb`
  * Beam Shape Plots of some of the fundamental modes
  * Example of Coupling Integral calculation
  
+
+### Single Disk
+File: `Single Disk.ipynb`
+ * Initilization & Run of all algorithms for a single disk setup
+ * Comparision between the algorithms
+ 
 ### Transformer, 20 Disks
 File: `Transformer, 20 Disks.ipynb`
  * Initialization and Usage of `transformer()`
