@@ -1,12 +1,12 @@
 # BoostFractor.jl
 
-<img src="img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl-->
+<img src="img/boost_fractor_logo.png" alt="BoostFractor" width=300>
 
 MADMAX electrodynamics simulation in Julia.
 
 
 ## 1D Calculations
-[1D Code](1d_model.md) based on impedance transformation / 1D ray tracing.
+A [1D Code](1d_model.md) based on impedance transformation / 1D ray tracing is available. It is equivalent to the transfer matrices in [arXiv:1612.07057](https://arXiv.org/abs/1612.07057).
 
 All 3D Codes below generalize also to 1D, but may be less performant.
 
@@ -26,4 +26,4 @@ The `examples` folder contains Jupyter notebooks with examples on how to use `Bo
 A summary of the contained examples can be found [here](examples.md)
 
 ## Disk Position Optimization
-[1D Code](1d_model.md) also contains some examples how to use julia to do optimizations (of the disk spacings for example).
+The [1D Code description](1d_model.md) also contains some examples how to use julia to do optimizations (of the disk spacings).
