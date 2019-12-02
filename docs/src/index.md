@@ -11,7 +11,7 @@ MadMax electrodynamics simulation in Julia.
 All 3D Codes below generalize also to 1D, but may be less performant.
 
 ## 3D Calculations
-Below a summary of available codes. More details on how the algorithms work can be found in [literature](resources.md).
+Below a summary of implemented codes. More details on how the algorithms work can be found in [literature](resources.md).
 
 #### Recursive (Fourier) Propagation
 Iteratively propagate electromagnetic fields between dielectric interfaces.
