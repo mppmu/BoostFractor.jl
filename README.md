@@ -1,4 +1,6 @@
-# <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl-->
+# <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl--> 
+
+[![Build Status](https://travis-ci.com/mppmu/BoostFractor.jl.svg?token=WaxBMkB9ZxeQMN9rjG57&branch=master)](https://travis-ci.com/mppmu/BoostFractor.jl)
 
 MADMAX axion-electrodynamics simulation in Julia.
 
