@@ -29,4 +29,4 @@ julia> pkg"add Plots PyPlot IJulia JLD"
 ```
 
 ## Usage
-See the [examples](./examples) and [docs](docs/index.md).
+See the [examples](./examples) and [docs](docs/src/index.md).
