@@ -2,13 +2,13 @@
 
 [![Build Status](https://travis-ci.com/mppmu/BoostFractor.jl.svg?token=WaxBMkB9ZxeQMN9rjG57&branch=master)](https://travis-ci.com/mppmu/BoostFractor.jl)
 
-[MADMAX](https://madmax.mpp.mpg.de) axion-electrodynamics simulation in Julia.
+[MADMAX](https://madmax.mpp.mpg.de) axion-electrodynamics simulation in Julia. ([1D](docs/src/1d_model.md)  and [3D](docs/src/3d_algorithms.md) )
 
-## General Remarks
-<!--For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.-->
+<!--## General Remarks
+For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
 
-Note that also a [**1D code**](docs/src/1d_model.md) including some basic optimization
-examples is available.
+Note that also a including some basic optimization
+examples is available.-->
 
 ## Installation
 
