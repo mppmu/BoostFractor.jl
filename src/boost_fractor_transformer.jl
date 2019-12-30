@@ -231,7 +231,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, Xset=X, Yset=Y, diskR=0.15, emit=axion_induced_modes(;B=ones(length(X),length(Y)),diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, Xset=X, Yset=Y, diskR=0.15, emit=axion_induced_modes(;B=ones(length(X),length(Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
 
