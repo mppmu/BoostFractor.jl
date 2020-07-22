@@ -9,10 +9,10 @@
 
 export gauss_profile
 
-"""
+@doc raw"""
     gauss_profile(X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5, z = 0.000000001, omega0 = 0.1, f = 10e9)
 
-Compute normalized gaussian beam profile.
+Compute normalized 2D gaussian beam profile at given z position (waist at ```z = 0```)
 
 # Arguments
 - `X::AbstractRange{Float}`: x coordinates
