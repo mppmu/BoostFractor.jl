@@ -22,7 +22,7 @@ Define properties of dielectric boundaries. Coordinate system?
 # Fields:
 - `distance::Array{Float64,1}` ```> 0```: Distance in z direction to boundary
 - `r::Array{Complex{Float64},1}` ```[0, 1]```: Boundary reflection coefficient for right-propagating wave
-- `eps::Array{Complex{Float64},1}` ```≥ 1```: Dielectric constant to the right of each boundary"
+- `eps::Array{Complex{Float64},1}` ```≥ 1```: Dielectric permittivity to the right of each boundary"
 - `relative_tilt_x` ```> 0```: Tilt in x direction [rad?]
 - `relative_tilt_y` ```> 0```: Tilt in y direction [rad?]
 - `relative_surfaces::Array{Complex{Float64},3}` ```?```: Surface roughness. z offset (1st dim) at x,y (2nd, 3rd dims)
@@ -49,7 +49,7 @@ Define properties of dielectric discs (same for all discs).
 
 # Fields:
 - `thickness::Float64` ```> 0```: Thickness of discs
-- `eps::Complex{Float64}` ```> 1```: Dielectric constant
+- `eps::Complex{Float64}` ```> 1```: Dielectric permittivity
 """
 mutable struct DiskDefiniton
     thickness::Float64 # = 1e-3
@@ -97,7 +97,7 @@ global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
 """
     init_coords(Xset, Yset)
 
-Initialize coordinate system.
+Initialize coordinate system in real and fourier space.
 
 # Arguments
 - `Xset::AbstractRange{Float}`: x coordinates
@@ -122,7 +122,8 @@ Calculate reflection and transmission coefficients.
 
 # Arguments
 - `freq::Float64` ```> 0```: Frequency of EM radiation
-
+- `bdry::SetupBoundaries`: Properties of dielectric boundaries
+- `disk::DiskDefiniton`: Properties of dielectric discs
 """
 function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
     if disk == nothing
@@ -137,7 +138,7 @@ function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries
         t_left = 1. + r_left
         t_right = 1 .+ r_right
     else
-        # Initilize reflection coefficients according to disk model
+        # Initailize reflection coefficients according to disk model
         ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
         r_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*ref
         r_right = r_left
@@ -148,17 +149,31 @@ function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries
 end
 
 ## Propagators ########################################################################################
-
+#TODO: propagator and propagator NoTilts are in-place, julia convention is name! instead of name
 """
-Does the FFT of E0 on a disk, propagates the beam a given distance and does the iFFT
+    propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+
+Do the FFT of E0 on a disk, propagate the beam a given distance and do the iFFT.
 Note that this method is in-place. If it should be called more than one time on the
 same fields, use propagator(copy(E0), ...).
+
+Assume: Tilt is small, additional phase is obtained by propagating all fields just
+with k0 to the tilted surface (only valid if diffraction effects are small).
+
+# Arguments
+- `E0::Array{Float64,1}`: Electric field before propagation
+- `dz`: Distance propagated in z direction
+- `diskR`: Radius of discs
+- `eps`: Dielectric permittivity
+- `tilt_x`: Disc tilt in x direction
+- `tilt_y`: Disc tilt in y direction
+- `surface`: Surface roughness of disc (only at end of propagation)
+- `lambda`: Wavelength of electric field
+
 """
 function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     k0 = 2*pi/lambda*sqrt(eps)
     # Call the propagator and add a phase imposed by the tilt
-    # Assumptions: Tilt is small, the additional phase is obtained by propagating
-    #              all fields just with k0 to the tilted surface (only valid if diffraction effects are small)
     E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Tilts:
     E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
@@ -167,6 +182,10 @@ function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     return E0
 end
 
+"""
+    propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+
+"""
 function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Diffract at the Disk. Only the disk is diffracting.
     E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
@@ -175,14 +194,6 @@ function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     FFTW.fft!(E0)
     #print(E0)
     E0 = FFTW.fftshift(E0)
-
-    # This should now work with the global variable
-    #minimum_Kx = 2*pi/(maximum(X)*2)
-    #maximum_Kx = minimum_Kx * (length(X)-1)/2
-    #coordsKx = -maximum_Kx:minimum_Kx:maximum_Kx
-    #minimum_Ky = 2*pi/(maximum(Y)*2)
-    #maximum_Ky = minimum_Ky * (length(Y)-1)/2
-    #coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
 
     # TODO: If maximum k is higher than k0, then it is not defined
     #       what happens with this mode
