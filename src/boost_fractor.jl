@@ -186,15 +186,16 @@ end
 """
     propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
 
-Wrapped by [`propagator`](@ref). Go there for documentation.
+Wrapped by [`propagator`](@ref). Go there for documentation. Tilt arguments to be
+compatible with other propagators.
 """
 function propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
     # Diffract at the Disk. Only the disk is diffracting.
     E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
     # FFT the E-Field to spatial frequencies
-    #print(E0)
+    # fft! and ifft! in the current release (1.2.2) only work with type ComplexF32 and ComplexF64
+    # fft and ifft seem more stable
     FFTW.fft!(E0)
-    #print(E0)
     E0 = FFTW.fftshift(E0)
 
     # TODO: If maximum k is higher than k0, then it is not defined
@@ -246,7 +247,7 @@ end
     propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
 
 This propagator just does the phase propagation. Go to [`propagator`](@ref)
-for documentation.
+for documentation. 3D arguments to be compatible with other propagators.
 """
 function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Version of the propagator without the fft
