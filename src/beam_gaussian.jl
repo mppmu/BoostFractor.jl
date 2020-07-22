@@ -18,8 +18,8 @@ Compute normalized 2D gaussian beam profile at given z position (waist at ```z =
 - `X::AbstractRange{Float}`: x coordinates
 - `Y::AbstractRange{Float}`: y coordinates
 - `z::Float`: Distance from beam waist
-- `omega0::Float`: Beam waist radius
-- `f::Float`: Frequency of monochromatic EM radiation
+- `omega0::Float` ```> 0```: Beam waist radius
+- `f::Float` ```> 0```: Frequency of monochromatic EM radiation
 """
 function gauss_profile(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5, z = 0.000000001, omega0 = 0.1, f = 10e9)
 #TODO: Documentation in Jupyter notenbook doesnt match implementation (which is equal to wikipedia).

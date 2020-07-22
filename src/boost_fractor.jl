@@ -94,7 +94,17 @@ global minimum_Ky = 2*pi/(maximum(Y)*2)
 global maximum_Ky = minimum_Ky * (length(Y)-1)/2
 global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
 
+"""
+    init_coords(Xset, Yset)
+
+Initialize coordinate system.
+
+# Arguments
+- `Xset::AbstractRange{Float}`: x coordinates
+- `Yset::AbstractRange{Float}`: y coordinates
+"""
 function init_coords(Xset,Yset)
+    #TODO: This function is definitely bad style!
     global X=Xset
     global Y=Yset
     global minimum_Kx = 2*pi/(maximum(X)*2)
@@ -105,10 +115,18 @@ function init_coords(Xset,Yset)
     global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
 end
 
+@doc raw"""
+    initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
 
+Calculate reflection and transmission coefficients.
+
+# Arguments
+- `freq::Float64` ```> 0```: Frequency of EM radiation
+
+"""
 function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
     if disk == nothing
-        # Initilize reflection coefficients according to epsilon
+        # Iniatilize reflection coefficients according to epsilon
         r_left = ones(length(bdry.eps))
         r_left[1] = -1
         for i in 2:length(bdry.eps)
