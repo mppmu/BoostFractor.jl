@@ -13,17 +13,26 @@
 
 export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D,init_coords
 
+@doc raw"""
+# Summary
+    mutable struct SetupBoundaries <: Any
 
+Define properties of dielectric boundaries. Coordinate system?
+
+# Fields:
+- `distance::Array{Float64,1}` ```> 0```: Distance in z direction to boundary
+- `r::Array{Complex{Float64},1}` ```[0, 1]```: Boundary reflection coefficient for right-propagating wave
+- `eps::Array{Complex{Float64},1}` ```≥ 1```: Dielectric constant to the right of each boundary"
+- `relative_tilt_x` ```> 0```: Tilt in x direction [rad?]
+- `relative_tilt_y` ```> 0```: Tilt in y direction [rad?]
+- `relative_surfaces::Array{Complex{Float64},3}` ```?```: Surface roughness. z offset (1st dim) at x,y (2nd, 3rd dims)
+"""
 mutable struct SetupBoundaries
     distance::Array{Float64,1} # = [15e-3, 5e-3,0]
-    # Boundary reflection coefficient for right-propagating wave
     r::Array{Complex{Float64},1}   # = [1,-0.5,0.5,0]
-    # Epsilon to the right of each boundary
     eps::Array{Complex{Float64},1}   # = [1,9,1]
-    # Tilts
     relative_tilt_x # = [0,0]
     relative_tilt_y # = [0,0]
-    # Surface Roughness ...
     relative_surfaces::Array{Complex{Float64},3} # = [z, x,y ]
     # etc.
 end
@@ -31,14 +40,33 @@ SetupBoundaries(distance::Array{Float64,1}, r::Array{Complex{Float64},1}, eps::A
 SetupBoundaries(distance::Array{Float64,1}) = SetupBoundaries(distance,[1,-0.5,0.5,0],[1,9,1], [0.0,0.0,0.0], [0.0,0.0,0.0]);
 SetupBoundaries() = SetupBoundaries([15e-3, 5e-3,0]);
 
+
+@doc raw"""
+# Summary
+    mutable struct DiskDefinition <: Any
+
+Define properties of dielectric discs (same for all discs).
+
+# Fields:
+- `thickness::Float64` ```> 0```: Thickness of discs
+- `eps::Complex{Float64}` ```> 1```: Dielectric constant
+"""
 mutable struct DiskDefiniton
     thickness::Float64 # = 1e-3
-    # Boundary reflection coefficient for right-propagating wave
+    # ??? Boundary reflection coefficient for right-propagating wave
     eps::Complex{Float64} # = 9
 end
 DiskDefiniton() = DiskDefiniton(1e-3, 9)
 
 ## Convenient tools ################################################################################
+@doc raw"""
+    SeedSetupBoundaries(diskno=3)
+
+Initialize `mutable struct SetupBoundaries` with sensible values.
+
+# Arguments
+- `diskno::Int` ```> 0```: Number of dielectric discs
+"""
 function SeedSetupBoundaries(diskno=3)
 
     distances = [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ]
