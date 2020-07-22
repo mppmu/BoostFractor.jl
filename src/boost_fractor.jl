@@ -161,7 +161,7 @@ Assume: Tilt is small, additional phase is obtained by propagating all fields ju
 with k0 to the tilted surface (only valid if diffraction effects are small).
 
 # Arguments
-- `E0::Array{Float64,1}`: Electric field before propagation
+- `E0::Array{Float64,2}`: Electric field before propagation
 - `dz`: Distance propagated in z direction
 - `diskR`: Radius of discs
 - `eps`: Dielectric permittivity
@@ -170,6 +170,7 @@ with k0 to the tilted surface (only valid if diffraction effects are small).
 - `surface`: Surface roughness of disc (only at end of propagation)
 - `lambda`: Wavelength of electric field
 
+See also: [`propagatorMomentumSpace`](@ref)
 """
 function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     k0 = 2*pi/lambda*sqrt(eps)
@@ -185,6 +186,7 @@ end
 """
     propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
 
+Wrapped by [`propagator`](@ref). Go there for documentation.
 """
 function propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
     # Diffract at the Disk. Only the disk is diffracting.
@@ -210,7 +212,10 @@ function propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
 end
 
 """
-Propagator that assumes E0 is already in momentum space.
+    propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+
+Propagator that assumes E0 is already in momentum space. Mix between [`propagator`](@ref)
+and [`propagatorNoTilts`](@ref). Go to [`propagator`](@ref) for documentation.
 """
 function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Propagate through space
@@ -238,7 +243,10 @@ function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, la
 end
 
 """
-This propagator just does the phase propagation.
+    propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+
+This propagator just does the phase propagation. Go to [`propagator`](@ref)
+for documentation.
 """
 function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Version of the propagator without the fft
