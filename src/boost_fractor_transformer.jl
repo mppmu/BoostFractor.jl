@@ -30,7 +30,10 @@ global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
 global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
 
 """
-Initialize waveguide-modes for a 3D calculation
+    init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
+
+Initialize waveguide-modes with m and l up to Mmax and Lmax respectively for a
+3D calculation and a disc with radius diskR.
 """
 function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
     global M, L = Mmax,Lmax
