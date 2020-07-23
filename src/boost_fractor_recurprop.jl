@@ -172,7 +172,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
             ax_rightmoving = sqrt(eps_m) * (1 - eps_i/eps_m) / denominator +0.0im
         end
 
-        # Right-Moving in that gap
+        # Left-Moving in that gap
         eps_i = bdry.eps[n]
         eps_m = (n == length(bdry.distance)) ? 1 : bdry.eps[n+1] # Rightmost epsilon is 1.
         denominator = eps_i * sqrt(eps_m) + eps_m * sqrt(eps_i)
@@ -187,6 +187,27 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     return fields_initial
 end
 
+"""
+    cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
+
+New Recursive Fourier Propagation implementation.
+
+# Arguments:
+- `amin`: Mimum (local) amplitude of a field, in order to be propagated
+- `nmax`: Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
+- `bdry::SetupBoundaries`: Properties of dielectric boundaries
+- `f::Float64` ```> 0```: Frequency of EM radiation
+- `prop`: Propagator Function to use. Standard is propagator().
+- `emit`: ???
+- `reflect`: If `nothing` (standar value), the axion-induced signal is computed.
+             If set, this field defines a beam, for which the reflected beam will be calculated
+- `Xset` and `Yset`: Explicitly set the coordinate system for the fields
+- `diskR`: Radius of dielectric disk
+- `returnboth::Bool`: If `true` cheerleader returns fields leaving on left and right.
+                      If `false` only returns fields leaving on right.
+
+See [`dancer`](@ref) for old version.
+"""
 function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
     # Before speed of light was 3e8 here, but this means an error at the permil level, i.e. order ~20MHz at 20GHz,
     # if fixing lambda to 1.5 cm, one gets a shift of roughly 10MHz
