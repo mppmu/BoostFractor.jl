@@ -175,7 +175,7 @@ See also: [`propagatorMomentumSpace`](@ref)
 function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     k0 = 2*pi/lambda*sqrt(eps)
     # Call the propagator and add a phase imposed by the tilt
-    E0 = propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
+    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Tilts:
     E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
     # More general: Any surface misalignments:
@@ -184,12 +184,12 @@ function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
 end
 
 """
-    propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
+    propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
 
 Wrapped by [`propagator`](@ref). Go there for documentation. Tilt arguments to be
 compatible with other propagators.
 """
-function propagatorNoTilts(E0, dz, diskR, eps, surface, lambda)
+function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     # Diffract at the Disk. Only the disk is diffracting.
     E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
     # FFT the E-Field to spatial frequencies
