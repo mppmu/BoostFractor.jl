@@ -138,6 +138,11 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     end
 end
 
+"""
+    dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
+
+Initialize EM fields. Can include velocity effects.
+"""
 function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
     # Initialize the variable we want to return
     fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
@@ -145,7 +150,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
     if bfield == nothing
         # Make sure that there is only emission on the disk surfaces
-        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y] 
+        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y]
     end
     if velocity_x != 0
         c = 299792458.
@@ -155,6 +160,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     ####################################################################################
 
     # Iterate over the gaps and initialize the emissions from them #####################
+    # This implements Knirck Thesis (2.4)
     for n in 1:length(bdry.distance)
         ax_rightmoving = 0
         if n == 1
@@ -220,9 +226,9 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     # Note that fields[0,:,:] contains the fields leaving the system on the left
     # and fields[length(bdry.distance)+1,:,:] the fields leaving on the right
     #fields = OffsetArray(::Array{Complex{Float64}}}, 0:length(bdry.distance)+1, 1:length(X), 1:length(Y))
-    fields = Array{Complex{Float64}}(zeros(     length(bdry.distance)+2, length(X), length(Y)))
-    # number of regions + 2 outporpagating --^                 ^
-    # dimensions of the fields at each position ---------------^
+    fields = Array{Complex{Float64}}(zeros(length(bdry.distance)+2, length(X), length(Y)))
+    # number of regions + 2 outporpagating --^                               ^
+    # dimensions of the fields at each position -----------------------------^
 
     # In a next step this could/should be generalized in the SetupBoundaries structure..
     reflectivities_leftmoving =  -bdry.r
@@ -242,7 +248,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     # Note that this is different from dancer() since here we do not take the mirror
     # explicit, such that also a transmissivity can be calculated
 
-    #emit = zeros(length(bdry.distance), 2, length(X), length(Y))
+
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
         if emit == nothing
