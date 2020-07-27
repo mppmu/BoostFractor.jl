@@ -53,8 +53,7 @@ function dancer(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=1
         # Eout =
     end
 
-    c = 299792458.
-    lambda = c/f
+    lambda = wavelength(f)
 
     n = 0   # Iteration Count
     a = 1.0 # Maximum Field Amplitude in the iteration
@@ -147,8 +146,8 @@ function dance_intro(bdry::SetupBoundaries, coords::CoordinateSystem; bfield=not
         bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in coords.X, y in coords.Y]
     end
     if velocity_x != 0
-        c = 299792458.
-        Ma_PerMeter = 2pi*f/c # k = 2pi/lambda (c/f = lambda)
+        lambda = wavelength(f)
+        Ma_PerMeter = 2pi/lambda # k = 2pi/lambda (c/f = lambda)
         bfield .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for z in ones(length(bdry.distance)+1), x in coords.X, y in coords.Y]
     end
     ####################################################################################
@@ -189,8 +188,7 @@ end
 function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnboth=false)
     # Before speed of light was 3e8 here, but this means an error at the permil level, i.e. order ~20MHz at 20GHz,
     # if fixing lambda to 1.5 cm, one gets a shift of roughly 10MHz
-    c = 299792458.
-    lambda = c/f
+    lambda = wavelength(f)
 
     # Pre-allocate memory
     # Note that fields[0,:,:] contains the fields leaving the system on the left

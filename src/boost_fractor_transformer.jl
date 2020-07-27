@@ -96,8 +96,8 @@ function axion_induced_modes(coords;B=ones(length(coords.X), length(coords.Y)), 
     # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
         B = Array{Complex{Float64}}(B)
-        c = 299792458.
-        Ma_PerMeter = 2pi*f/c # k = 2pi/lambda (c/f = lambda)
+        lambda = wavelength(f)
+        Ma_PerMeter = 2pi/lambda # k = 2pi/lambda (c/f = lambda)
         B .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for x in coords.X, y in coords.Y]
     end
 
@@ -225,8 +225,7 @@ Useful, if they should be altered later (e.g. take out modes, add some additiona
 """
 function calc_propagation_matrices(bdry::SetupBoundaries; f=10.0e9, prop=propagator, diskR=0.15)
     Nregions = length(bdry.eps)
-    c = 299792458.
-    wavelength = c / f
+    wavelength = wavelength(f)
     return [ propagation_matrix(bdry.distance[i], diskR, bdry.eps[i],
             bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], wavelength;
             prop=prop) for i in 1:(Nregions) ]
@@ -242,8 +241,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, 
     #Definitions
     transmissionfunction_complete = [id zeromatrix ; zeromatrix id ]
 
-    c = 299792458.
-    wavelength = c / f
+    wavelength = wavelength(f)
 
     initial = emit
     #println(initial)

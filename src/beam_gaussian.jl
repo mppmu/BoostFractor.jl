@@ -12,8 +12,7 @@ export gauss_profile
 function gauss_profile(coords::CoordinateSystem; z = 0.000000001, omega0 = 0.1, f = 10e9)
     radius = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
 
-    c = 299792458.
-    lambda = c/f
+    lambda = wavelength(f)
     #Gaussian Beam profile:
     k = 2*pi/lambda
     zR = pi*omega0^2/lambda

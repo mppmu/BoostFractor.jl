@@ -11,8 +11,12 @@
 #
 
 
-export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D, CoordinateSystem, SeedCoordinateSystem
+export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D, CoordinateSystem, SeedCoordinateSystem, wavelength
 
+function wavelength(frequency::Float64)
+    speed_of_light = 299792458. # [m]
+    return speed_of_light / frequency
+end
 
 struct CoordinateSystem
     # Real Space Coordinates
