@@ -27,31 +27,31 @@ mutable struct SetupBoundaries
     relative_surfaces::Array{Complex{Float64},3} # = [z, x,y ]
     # etc.
 end
-SetupBoundaries(distance::Array{Float64,1}, r::Array{Complex{Float64},1}, eps::Array{Complex{Float64},1}) = SetupBoundaries(distance,r,eps, zeros(length(distance)), zeros(length(distance)), zeros(length(distance), length(X), length(Y) ));
-SetupBoundaries(distance::Array{Float64,1}) = SetupBoundaries(distance,[1,-0.5,0.5,0],[1,9,1], [0.0,0.0,0.0], [0.0,0.0,0.0]);
-SetupBoundaries() = SetupBoundaries([15e-3, 5e-3,0]);
 
-mutable struct DiskDefiniton
-    thickness::Float64 # = 1e-3
-    # Boundary reflection coefficient for right-propagating wave
-    eps::Complex{Float64} # = 9
-end
-DiskDefiniton() = DiskDefiniton(1e-3, 9)
 
 ## Convenient tools ################################################################################
-function SeedSetupBoundaries(diskno=3)
 
-    distances = [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ]
-    append!(distances, 0e-3) #8e-3)
+function SeedSetupBoundaries(coordinates; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+1), relative_tilt_y=zeros(2*diskno+1), relative_surfaces=zeros(2*diskno+1 , length(coordinates.X), length(coordinates.Y)))
 
-    reflectivities = [1.0]
-    append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
-    append!(reflectivities, 0)
+    # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
+    if distance == nothing # [m]
+        distance = [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ]
+        append!(distance, 0e-3) #8e-3)
 
-    epsilon = [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ]
-    append!(epsilon, 1.0)
+    if reflectivities == nothing
+        reflectivities = [1.0]
+        append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
+        append!(reflectivities, 0)
 
-    return SetupBoundaries(distances, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon))
+    if epsilon == nothing
+        epsilon = [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ]
+        append!(epsilon, 1.0)
+
+    # Check if initialization was self-consistent
+    length(distance) == length(reflectivities) == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) ||
+     throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
+
+    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
 
@@ -78,6 +78,10 @@ function init_coords(Xset,Yset)
 end
 
 
+#TODO: This function is no longer supported. reflectivity_transmissivity_1d does not exist; DiskDefinition has merged into SetuoBoundaries.
+"""
+OUTDATED! Does not work, do not use!
+"""
 function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
     if disk == nothing
         # Initilize reflection coefficients according to epsilon
