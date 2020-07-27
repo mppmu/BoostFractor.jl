@@ -204,7 +204,9 @@ New Recursive Fourier Propagation implementation.
 - `bdry::SetupBoundaries`: Properties of dielectric boundaries
 - `f::Float64` ```> 0```: Frequency of EM radiation
 - `prop`: Propagator Function to use. Standard is propagator().
-- `emit`: ???
+- `emit`:  Explicitly set the axion-induced fields emitted from each boundary (to the left and to the right). 
+               If ``nothing`` fields are initialized according to uniform, 
+               homogeneous external B-field with zero axion velocity.
 - `reflect`: If `nothing` (standar value), the axion-induced signal is computed.
              If set, this field defines a beam, for which the reflected beam will be calculated
 - `Xset` and `Yset`: Explicitly set the coordinate system for the fields
