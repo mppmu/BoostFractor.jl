@@ -27,7 +27,7 @@ struct CoordinateSystem
     kY::Array{Float64,1}
 end
 
-function SeedCoordinateSystem(X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5) # units [m]
+function SeedCoordinateSystem(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5) # units [m]
     kX = get_kspace_coords(X)
     kY = get_kspace_coords(Y)
     return CoordinateSystem(X, Y, kX, kY)
