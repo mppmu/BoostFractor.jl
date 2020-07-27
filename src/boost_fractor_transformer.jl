@@ -5,7 +5,7 @@
 #
 # Stefan Knirck
 #
-export transformer,init_waveguidemodes_3d,init_modes_1d,calc_propagation_matrices,field2modes,modes2field
+export transformer,init_waveguidemodes_3d,init_modes_1d,calc_propagation_matrices,field2modes,modes2field, Waveguidemodes, SeedWaveguidemodes
 
 # Transformation Matrices
 using LinearAlgebra
@@ -70,6 +70,38 @@ function init_modes_1d()
 end
 
 
+struct Waveguidemodes
+    M::Int64
+    L::Int64
+    mode_patterns::Array{Complex{Float64}, 3}
+    mode_kt::Array{Complex{Float64}, 1}
+    id::Array{Complex{Float64}, 2}
+    zeromatrix::Array{Complex{Float64}, 2}
+end
+
+function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15)
+
+    if ThreeDim
+        M, L = Mmax,Lmax
+        mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
+        mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
+        for m in 1:M, l in -L:L
+            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l,coords;diskR=diskR)
+        end
+    else
+        M = 1
+        L = 0
+        mode_patterns = Array{Complex{Float64}}(ones(M,2*L+1, length(coords.X), length(coords.Y)))
+        mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
+    end
+
+    id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
+    zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
+
+    return Waveguidemodes(M,L,mode_patterns,mode_kt,id,zeromatrix)
+end
+
+
 # ---------------------- Functionality ------------------------------------------------
 
 """
@@ -108,10 +140,10 @@ function axion_induced_modes(coords;B=ones(length(coords.X), length(coords.Y)), 
     #       integrals
     B ./= sqrt.( sum(abs2.(B)) )
 
-    modes_intital = Array{Complex{Float64}}(zeros(M*(2L+1)))
-    for m in 1:M, l in -L:L
-        modes_intital[(m-1)*(2L+1)+l+L+1] =
-                sum( conj.(mode_patterns[m,l+L+1,:,:]) .* B )
+    modes_intital = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1)))
+    for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
+        modes_intital[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1] =
+                sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* B )
     end
 
     return modes_intital
@@ -127,8 +159,8 @@ Get the field distribution E(x,y) for a given vector of mode coefficients
 """
 function modes2field(modes, coords::CoordinateSystem)
     result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y)))
-    for m in 1:M, l in -L:L
-        result .+= modes[(m-1)*(2L+1)+l+L+1].*mode_patterns[m,l+L+1,:,:]
+    for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
+        result .+= modes[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1].*wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]
     end
     return result
 end
@@ -137,7 +169,7 @@ end
 # Mode Mixing Matrix for the Propagation in a gap
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
 function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem; is_air=(eps==1), onlydiagonal=false, prop=propagator)
-    matching_matrix = Array{Complex{Float64}}(zeros(M*(2L+1),M*(2L+1)))
+    matching_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
 
     k0 = 2pi/lambda*sqrt(eps)
 
@@ -157,26 +189,26 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
     end
 
     # Calculate the mixing matrix
-    for m_prime in 1:M, l_prime in -L:L
+    for m_prime in 1:wvgmodes.M, l_prime in -wvgmodes.L:wvgmodes.L
         # Propagated fields of mode (m_prime, l_prime)
-        propagated = propfunc(mode_patterns[m_prime,l_prime+L+1,:,:])
+        propagated = propfunc(wvgmodes.mode_patterns[m_prime,l_prime+wvgmodes.L+1,:,:])
 
-        for m in (onlydiagonal ? [m_prime] : 1:M), l in (onlydiagonal ? [l_prime] : -L:L)
+        for m in (onlydiagonal ? [m_prime] : 1:wvgmodes.M), l in (onlydiagonal ? [l_prime] : -wvgmodes.L:wvgmodes.L)
 
             # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
-            matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1] =
-                    sum( conj.(mode_patterns[m,l+L+1,:,:]) .* propagated ) #*dx*dy
+            matching_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m_prime-1)*(2wvgmodes.L+1)+l_prime+wvgmodes.L+1] =
+                    sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* propagated ) #*dx*dy
 
             #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
         end
     end
 
     if !is_air
-        propagation_matrix = Array{Complex{Float64}}(zeros(M*(2L+1),M*(2L+1)))
+        propagation_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
         #The propagation within the disk is still missing
-        for m in 1:M, l in -L:L
-            kz = sqrt(k0^2 - mode_kt[m,l+L+1])
-            propagation_matrix[(m-1)*(2L+1)+l+L+1, (m-1)*(2L+1)+l+L+1] = exp(-1im*kz*dz)
+        for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
+            kz = sqrt(k0^2 - wvgmodes.mode_kt[m,l+wvgmodes.L+1])
+            propagation_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1] = exp(-1im*kz*dz)
         end
         # It is important to note the multiplication from the left
         matching_matrix = propagation_matrix*matching_matrix
@@ -195,15 +227,15 @@ end
 # Comments refer to the formuli in the theoretical foundations paper (arXiv:1612.07057v2)
 # but generalized to 3D making L and R vectors.
 
-function add_boundary(transm, n_left, n_right, diffprop)
+function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemodes)
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
     # The matrix encoding reflection and transmission
-    G = (( (1. /(2*n_right)).*[(n_right+n_left)*id (n_right-n_left)*id ; (n_right-n_left)*id (n_right+n_left)*id] ))
+    G = (( (1. /(2*n_right)).*[(n_right+n_left)*wvgmodes.id (n_right-n_left)*wvgmodes.id ; (n_right-n_left)*wvgmodes.id (n_right+n_left)*wvgmodes.id] ))
 
     # The product, i.e. transfer matrix
-    transm *= G * [diffprop zeromatrix; zeromatrix inv(Array{Complex{Float64}}(diffprop))]
+    transm *= G * [diffprop wvgmodes.zeromatrix; wvgmodes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
 
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
@@ -239,13 +271,13 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, 
     # as the mirror is not explicitly taken into account
 
     #Definitions
-    transmissionfunction_complete = [id zeromatrix ; zeromatrix id ]
+    transmissionfunction_complete = [wvgmodes.id wvgmodes.zeromatrix ; wvgmodes.zeromatrix wvgmodes.id ]
 
     wavelength = wavelength(f)
 
     initial = emit
     #println(initial)
-    axion_beam = Array{Complex{Float64}}(zeros((M)*(2L+1)))
+    axion_beam = Array{Complex{Float64}}(zeros((wvgmodes.M)*(2wvgmodes.L+1)))
     #println(axion_beam)
 
     #=
