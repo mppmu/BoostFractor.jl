@@ -22,29 +22,28 @@ Propagates the fields through the system
 * `returnsum`:      If false, the out-propagating contributions after each iteration will be returned, without summing.
 * `immediatesum`:   If false, the out-propagating contributions will be saved and summed up at the end.
 """
-function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnsum=true, immediatesum=true)
-    init_coords(Xset, Yset);
+function dancer(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnsum=true, immediatesum=true)
 
     rightmoving = 1
     leftmoving = 2
 
-    fields = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
-    #fields = SharedArray(Complex{Float64},  length(bdry.distance), 2, length(X), length(Y))
+    fields = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
+    #fields = SharedArray(Complex{Float64},  length(bdry.distance), 2, length(coords.X), length(coords.Y))
     #                       number of regions -----^                ^              ^
     #                       number of propagation directions -------^              ^
     #                       dimensions of the fields at each position -------------^
 
     # Pre-allocate memory
     if immediatesum
-        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),1))
+        Eout = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y),1))
     else
-        Eout = Array{Complex{Float64}}(zeros(length(X), length(Y),nmax+1))
+        Eout = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y),nmax+1))
     end
 
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
         if emit == nothing
-            fields = dance_intro(bdry,X,Y;diskR=diskR)
+            fields = dance_intro(bdry,coords;diskR=diskR)
         else
             fields = emit
         end
@@ -138,19 +137,19 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     end
 end
 
-function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
+function dance_intro(bdry::SetupBoundaries, coords::CoordinateSystem; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
     # Initialize the variable we want to return
-    fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
+    fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
 
     # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
     if bfield == nothing
         # Make sure that there is only emission on the disk surfaces
-        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y] 
+        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in coords.X, y in coords.Y]
     end
     if velocity_x != 0
         c = 299792458.
         Ma_PerMeter = 2pi*f/c # k = 2pi/lambda (c/f = lambda)
-        bfield .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for z in ones(length(bdry.distance)+1), x in X, y in Y]
+        bfield .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for z in ones(length(bdry.distance)+1), x in coords.X, y in coords.Y]
     end
     ####################################################################################
 
@@ -180,26 +179,24 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
         #ax_m = sqrt(eps_m) * (1 - eps_i/eps_m) / denominator +0.0im
 
         # Fill the initial array
-        fields_initial[n,1,:,:] = [1.0*ax_rightmoving + 0.0im for x in X, y in Y] .* bfield[n,:,:]
-        fields_initial[n,2,:,:] = [1.0*ax_leftmoving + 0.0im for x in X, y in Y] .* bfield[n+1,:,:]
+        fields_initial[n,1,:,:] = [1.0*ax_rightmoving + 0.0im for x in coords.X, y in coords.Y] .* bfield[n,:,:]
+        fields_initial[n,2,:,:] = [1.0*ax_leftmoving + 0.0im for x in coords.X, y in coords.Y] .* bfield[n+1,:,:]
     end
 
     return fields_initial
 end
 
-function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
+function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnboth=false)
     # Before speed of light was 3e8 here, but this means an error at the permil level, i.e. order ~20MHz at 20GHz,
     # if fixing lambda to 1.5 cm, one gets a shift of roughly 10MHz
     c = 299792458.
     lambda = c/f
 
-    init_coords(Xset, Yset);
-
     # Pre-allocate memory
     # Note that fields[0,:,:] contains the fields leaving the system on the left
     # and fields[length(bdry.distance)+1,:,:] the fields leaving on the right
     #fields = OffsetArray(::Array{Complex{Float64}}}, 0:length(bdry.distance)+1, 1:length(X), 1:length(Y))
-    fields = Array{Complex{Float64}}(zeros(     length(bdry.distance)+2, length(X), length(Y)))
+    fields = Array{Complex{Float64}}(zeros(     length(bdry.distance)+2, length(coords.X), length(coords.Y)))
     # number of regions + 2 outporpagating --^                 ^
     # dimensions of the fields at each position ---------------^
 
@@ -225,15 +222,15 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
         if emit == nothing
-            emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
+            emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
             # we may reuse the dance_intro-function in the standard case
             bdrycpy = deepcopy(bdry)
             bdrycpy.distance = bdrycpy.distance[2:end]
             bdrycpy.eps = bdrycpy.eps[2:end]
-            emit[2:end,:,:,:] = dance_intro(bdrycpy,X,Y,diskR=diskR)
+            emit[2:end,:,:,:] = dance_intro(bdrycpy,coords,diskR=diskR)
         end
     else
-        emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
+        emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
         # This should be right like this, it is explicitly taken care of at the bottom...
         emit[length(bdry.distance), 2, :, :] = reflect
     end

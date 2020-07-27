@@ -17,11 +17,14 @@ using SpecialFunctions, FunctionZeros
 
 # ---------------------- Initializations ------------------------------------------------
 
+#temp!!
+coords = SeedCoordinateSystem()
+
 # Pre-calculate the mode patterns to speed up the matching calculations
 
 # Number of modes to take into account
 global M, L = 6,0
-global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
+global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
 global mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
 
 global id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
@@ -32,14 +35,14 @@ global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
 """
 Initialize waveguide-modes for a 3D calculation
 """
-function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
+function init_waveguidemodes_3d(Mmax,Lmax, coords::CoordinateSystem;diskR=0.15)
     global M, L = Mmax,Lmax
-    global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
+    global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
     global mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
     #mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
     #mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
     for m in 1:M, l in -L:L
-        mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l; X=X,Y=Y,diskR=diskR)
+        mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l,coords;diskR=diskR)
     end
 
     global id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
@@ -55,7 +58,7 @@ Initialize 1D modes for a 1D calculation.
 function init_modes_1d()
     global M = 1
     global L = 0
-    global mode_patterns = Array{Complex{Float64}}(ones(1,1, length(X), length(Y)))
+    global mode_patterns = Array{Complex{Float64}}(ones(1,1, length(coords.X), length(coords.Y)))
     global mode_kt = Array{Complex{Float64}}(zeros(1,1))
 
 
@@ -72,9 +75,9 @@ end
 """
 Calculate the transverse k and field distribution for a dielectric waveguidemode
 """
-function waveguidemode(m,l; X=-0.5:0.007:0.5,  Y=-0.5:0.007:0.5,dx=0.007,dy=dx, diskR=0.15, k0=2pi/0.03)
-    RR = [sqrt(x^2 + y^2) for x in X, y in Y]
-    Phi = [atan(y,x) for x in X, y in Y]
+function waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
+    RR = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
+    Phi = [atan(y,x) for x in coords.X, y in coords.Y]
     kr = besselj_zero(abs.(l),m)/diskR
     pattern = besselj.(l,kr.*RR).*exp.(-1im*l*Phi)
     pattern[RR .> diskR] .*= 0 # Cutoff
@@ -88,18 +91,18 @@ end
 Calculate the vector of mode-coefficients that describe the uniform axion-induced
 field and that is normalized to power 1.
 """
-function axion_induced_modes(;B=ones(length(X), length(Y)), velocity_x=0, diskR=0.15,f=20e9)
+function axion_induced_modes(coords;B=ones(length(coords.X), length(coords.Y)), velocity_x=0, diskR=0.15,f=20e9)
 
     # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
         B = Array{Complex{Float64}}(B)
         c = 299792458.
         Ma_PerMeter = 2pi*f/c # k = 2pi/lambda (c/f = lambda)
-        B .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for x in X, y in Y]
+        B .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for x in coords.X, y in coords.Y]
     end
 
     # Only the axion-induced field on the disks matters:
-    B .*= [sqrt(x^2 + y^2) <= diskR for x in X, y in Y]
+    B .*= [sqrt(x^2 + y^2) <= diskR for x in coords.X, y in coords.Y]
 
     # Note: in all the normalizations the dx factors are dropped, since they should drop out in the final
     #       integrals
@@ -117,13 +120,13 @@ end
 """
 Get the mode coefficients for a given field distribution E(x,y)
 """
-field2modes(pattern;diskR=0.15) = axion_induced_modes(;B=pattern,diskR=diskR)
+field2modes(pattern, coords::CoordinateSystem;diskR=0.15) = axion_induced_modes(coords;B=pattern,diskR=diskR)
 
 """
 Get the field distribution E(x,y) for a given vector of mode coefficients
 """
-function modes2field(modes)
-    result = Array{Complex{Float64}}(zeros(length(X), length(Y)))
+function modes2field(modes, coords::CoordinateSystem)
+    result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y)))
     for m in 1:M, l in -L:L
         result .+= modes[(m-1)*(2L+1)+l+L+1].*mode_patterns[m,l+L+1,:,:]
     end
@@ -132,7 +135,8 @@ end
 
 
 # Mode Mixing Matrix for the Propagation in a gap
-function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_air=(eps==1), onlydiagonal=false, prop=propagator)
+#TODO: tilts, eps and surface should come from SetupBoundaries object?
+function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem; is_air=(eps==1), onlydiagonal=false, prop=propagator)
     matching_matrix = Array{Complex{Float64}}(zeros(M*(2L+1),M*(2L+1)))
 
     k0 = 2pi/lambda*sqrt(eps)
@@ -148,7 +152,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_
     else
         # In the disk the modes are eigenmodes, so we only have to apply the
         # inaccuracies and can apply the propagation later seperately
-        propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y].*exp.(-1im*k0*surface)
+        propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y].*exp.(-1im*k0*surface)
         # Applying exp element-wise to the surface is very important otherwise it is e^M with M matrix
     end
 
@@ -231,7 +235,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, Xset=X, Yset=Y, diskR=0.15, emit=axion_induced_modes(;B=ones(length(X),length(Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
 
