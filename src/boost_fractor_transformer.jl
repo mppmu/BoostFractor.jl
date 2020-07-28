@@ -17,64 +17,11 @@ using SpecialFunctions, FunctionZeros
 
 # ---------------------- Initializations ------------------------------------------------
 
-#temp!!
-coords = SeedCoordinateSystem()
-
-# Pre-calculate the mode patterns to speed up the matching calculations
-
-# Number of modes to take into account
-global M, L = 6,0
-global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
-global mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
-
-global id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
-global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
-# Indexing function to get sub-matrices
-global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
-
-"""
-Initialize waveguide-modes for a 3D calculation
-"""
-function init_waveguidemodes_3d(Mmax,Lmax, coords::CoordinateSystem;diskR=0.15)
-    global M, L = Mmax,Lmax
-    global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
-    global mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
-    #mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
-    #mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
-    for m in 1:M, l in -L:L
-        mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l,coords;diskR=diskR)
-    end
-
-    global id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
-    global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
-
-    # Indexing function to get sub-matrices
-    #global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
-end
-
-"""
-Initialize 1D modes for a 1D calculation.
-"""
-function init_modes_1d()
-    global M = 1
-    global L = 0
-    global mode_patterns = Array{Complex{Float64}}(ones(1,1, length(coords.X), length(coords.Y)))
-    global mode_kt = Array{Complex{Float64}}(zeros(1,1))
-
-
-    global id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
-    global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
-
-    # Indexing function to get sub-matrices
-    #global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
-end
-
-
 struct Waveguidemodes
     M::Int64
     L::Int64
-    mode_patterns::Array{Complex{Float64}, 3}
-    mode_kt::Array{Complex{Float64}, 1}
+    mode_patterns::Array{Complex{Float64}, 4}
+    mode_kt::Array{Complex{Float64}, 2}
     id::Array{Complex{Float64}, 2}
     zeromatrix::Array{Complex{Float64}, 2}
 end
@@ -95,8 +42,8 @@ function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lma
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
     end
 
-    id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1)))
-    zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
+    id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1))) # I: Identity matrix
+    zeromatrix = zeros(M*(2L+1),M*(2L+1))
 
     return Waveguidemodes(M,L,mode_patterns,mode_kt,id,zeromatrix)
 end
@@ -123,7 +70,7 @@ end
 Calculate the vector of mode-coefficients that describe the uniform axion-induced
 field and that is normalized to power 1.
 """
-function axion_induced_modes(coords;B=ones(length(coords.X), length(coords.Y)), velocity_x=0, diskR=0.15,f=20e9)
+function axion_induced_modes(coords::CoordinateSystem, wvgmodes::Waveguidemodes;B=ones(length(coords.X), length(coords.Y)), velocity_x=0, diskR=0.15,f=20e9)
 
     # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
@@ -152,12 +99,12 @@ end
 """
 Get the mode coefficients for a given field distribution E(x,y)
 """
-field2modes(pattern, coords::CoordinateSystem;diskR=0.15) = axion_induced_modes(coords;B=pattern,diskR=diskR)
+field2modes(pattern, coords::CoordinateSystem, wvgmodes::Waveguidemodes;diskR=0.15) = axion_induced_modes(coords, wvgmodes;B=pattern,diskR=diskR)
 
 """
 Get the field distribution E(x,y) for a given vector of mode coefficients
 """
-function modes2field(modes, coords::CoordinateSystem)
+function modes2field(modes, coords::CoordinateSystem, wvgmodes::Waveguidemodes)
     result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y)))
     for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
         result .+= modes[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1].*wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]
@@ -168,7 +115,7 @@ end
 
 # Mode Mixing Matrix for the Propagation in a gap
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
-function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem; is_air=(eps==1), onlydiagonal=false, prop=propagator)
+function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, wvgmodes::Waveguidemodes; is_air=(eps==1), onlydiagonal=false, prop=propagator)
     matching_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
 
     k0 = 2pi/lambda*sqrt(eps)
@@ -266,7 +213,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::Waveguidemodes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
 

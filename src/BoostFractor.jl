@@ -6,7 +6,7 @@ module BoostFractor
 
 using FFTW
 
-# Gerneal Interface
+# General Interface
 include("boost_fractor.jl")
 
 # Differnt algorithms
