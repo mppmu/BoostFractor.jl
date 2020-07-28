@@ -22,7 +22,7 @@ Define properties of dielectric boundaries. Coordinate system?
 # Fields:
 - `distance::Array{Float64,1}` ```> 0```: Distance in z direction to boundary
 - `r::Array{Complex{Float64},1}` ```[0, 1]```: Boundary reflection coefficient for right-propagating wave
-- `eps::Array{Complex{Float64},1}` ```≥ 1```: Dielectric permittivity to the right of each boundary"
+- `eps::Array{Complex{Float64},1}`: Dielectric permittivity to the right of each boundary"
 - `relative_tilt_x` ```> 0```: Tilt in x direction [rad?]
 - `relative_tilt_y` ```> 0```: Tilt in y direction [rad?]
 - `relative_surfaces::Array{Complex{Float64},3}` ```?```: Surface roughness. z offset (1st dim) at x,y (2nd, 3rd dims)

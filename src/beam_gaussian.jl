@@ -22,7 +22,6 @@ Compute normalized 2D gaussian beam profile at given z position (waist at ```z =
 - `f` ```> 0```: Frequency of monochromatic EM radiation
 """
 function gauss_profile(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5, z = 0.000000001, omega0 = 0.1, f = 10e9)
-#TODO: Documentation (equal to KnirkcThesis) in Jupyter notenbook doesnt match implementation (which is equal to wikipedia).
 	radius = [sqrt(x^2 + y^2) for x in X, y in Y]
 
     c = 299792458.

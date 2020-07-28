@@ -160,7 +160,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     ####################################################################################
 
     # Iterate over the gaps and initialize the emissions from them #####################
-    # This implements Knirck Thesis (2.4)
+    # This implements Theoretical Foundations (arxiv: 1612.07057) (3.3)
     for n in 1:length(bdry.distance)
         ax_rightmoving = 0
         if n == 1
