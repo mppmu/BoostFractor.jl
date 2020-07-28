@@ -18,6 +18,7 @@ using SpecialFunctions, FunctionZeros
 # ---------------------- Initializations ------------------------------------------------
 
 # Pre-calculate the mode patterns to speed up the matching calculations
+#TODO: Same issue as in boost_fractor. global definitions done twice.
 
 # Number of modes to take into account
 global M, L = 6,0
@@ -30,14 +31,16 @@ global zeromatrix = zeros(((M*(2L+1),M*(2L+1))))
 global i(k) = ((k-1)*M*(2L+1)+1):((k)*M*(2L+1))
 
 """
-Initialize waveguide-modes for a 3D calculation
+    init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
+
+Initialize waveguide-modes with m and l up to Mmax and Lmax respectively for a
+3D calculation and a disc with radius diskR.
 """
 function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
     global M, L = Mmax,Lmax
     global mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
     global mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
-    #mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(X), length(Y)))
-    #mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
+
     for m in 1:M, l in -L:L
         mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l; X=X,Y=Y,diskR=diskR)
     end
@@ -50,6 +53,8 @@ function init_waveguidemodes_3d(Mmax,Lmax;diskR=0.15)
 end
 
 """
+    init_modes_1d()
+
 Initialize 1D modes for a 1D calculation.
 """
 function init_modes_1d()
@@ -70,9 +75,11 @@ end
 # ---------------------- Functionality ------------------------------------------------
 
 """
+    waveguidemode(m,l; X=-0.5:0.007:0.5, Y=-0.5:0.007:0.5, dx=0.007, dy=dx, diskR=0.15, k0=2pi/0.03)
+
 Calculate the transverse k and field distribution for a dielectric waveguidemode
 """
-function waveguidemode(m,l; X=-0.5:0.007:0.5,  Y=-0.5:0.007:0.5,dx=0.007,dy=dx, diskR=0.15, k0=2pi/0.03)
+function waveguidemode(m,l; X=-0.5:0.007:0.5, Y=-0.5:0.007:0.5, dx=0.007, dy=dx, diskR=0.15, k0=2pi/0.03)
     RR = [sqrt(x^2 + y^2) for x in X, y in Y]
     Phi = [atan(y,x) for x in X, y in Y]
     kr = besselj_zero(abs.(l),m)/diskR
@@ -147,7 +154,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda; is_
         propfunc = propagate
     else
         # In the disk the modes are eigenmodes, so we only have to apply the
-        # inaccuracies and can apply the propagation later seperately
+        # inaccuracies and can apply the propagation later separately
         propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y].*exp.(-1im*k0*surface)
         # Applying exp element-wise to the surface is very important otherwise it is e^M with M matrix
     end
@@ -210,7 +217,7 @@ function add_boundary(transm, n_left, n_right, diffprop)
 end
 
 function axion_contrib(T,n1,n0, initial)
-    # Calculas one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
+    # Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
     # as in equation 4.14a
     return (1. /n1^2 - 1. /n0^2)/2 .* (T[i(2),i(1)]*(copy(initial)) + T[i(2),i(2)]*(copy(initial)))
 end

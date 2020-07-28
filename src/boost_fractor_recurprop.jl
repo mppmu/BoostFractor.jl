@@ -138,6 +138,11 @@ function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, em
     end
 end
 
+"""
+    dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
+
+Initialize EM fields. Can include velocity effects.
+"""
 function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, f=10e9,diskR=0.1)
     # Initialize the variable we want to return
     fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(X), length(Y)))
@@ -145,7 +150,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
     if bfield == nothing
         # Make sure that there is only emission on the disk surfaces
-        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y] 
+        bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in X, y in Y]
     end
     if velocity_x != 0
         c = 299792458.
@@ -155,6 +160,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     ####################################################################################
 
     # Iterate over the gaps and initialize the emissions from them #####################
+    # This implements Theoretical Foundations (arxiv: 1612.07057) (3.3)
     for n in 1:length(bdry.distance)
         ax_rightmoving = 0
         if n == 1
@@ -172,7 +178,7 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
             ax_rightmoving = sqrt(eps_m) * (1 - eps_i/eps_m) / denominator +0.0im
         end
 
-        # Right-Moving in that gap
+        # Left-Moving in that gap
         eps_i = bdry.eps[n]
         eps_m = (n == length(bdry.distance)) ? 1 : bdry.eps[n+1] # Rightmost epsilon is 1.
         denominator = eps_i * sqrt(eps_m) + eps_m * sqrt(eps_i)
@@ -187,6 +193,29 @@ function dance_intro(bdry::SetupBoundaries, X, Y; bfield=nothing, velocity_x=0, 
     return fields_initial
 end
 
+"""
+    cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
+
+New Recursive Fourier Propagation implementation.
+
+# Arguments:
+- `amin`: Mimum (local) amplitude of a field, in order to be propagated
+- `nmax`: Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
+- `bdry::SetupBoundaries`: Properties of dielectric boundaries
+- `f::Float64` ```> 0```: Frequency of EM radiation
+- `prop`: Propagator Function to use. Standard is propagator().
+- `emit`:  Explicitly set the axion-induced fields emitted from each boundary (to the left and to the right). 
+               If ``nothing`` fields are initialized according to uniform, 
+               homogeneous external B-field with zero axion velocity.
+- `reflect`: If `nothing` (standar value), the axion-induced signal is computed.
+             If set, this field defines a beam, for which the reflected beam will be calculated
+- `Xset` and `Yset`: Explicitly set the coordinate system for the fields
+- `diskR`: Radius of dielectric disk
+- `returnboth::Bool`: If `true` cheerleader returns fields leaving on left and right.
+                      If `false` only returns fields leaving on right.
+
+See [`dancer`](@ref) for old version.
+"""
 function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
     # Before speed of light was 3e8 here, but this means an error at the permil level, i.e. order ~20MHz at 20GHz,
     # if fixing lambda to 1.5 cm, one gets a shift of roughly 10MHz
@@ -199,9 +228,9 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     # Note that fields[0,:,:] contains the fields leaving the system on the left
     # and fields[length(bdry.distance)+1,:,:] the fields leaving on the right
     #fields = OffsetArray(::Array{Complex{Float64}}}, 0:length(bdry.distance)+1, 1:length(X), 1:length(Y))
-    fields = Array{Complex{Float64}}(zeros(     length(bdry.distance)+2, length(X), length(Y)))
-    # number of regions + 2 outporpagating --^                 ^
-    # dimensions of the fields at each position ---------------^
+    fields = Array{Complex{Float64}}(zeros(length(bdry.distance)+2, length(X), length(Y)))
+    # number of regions + 2 outporpagating --^                               ^
+    # dimensions of the fields at each position -----------------------------^
 
     # In a next step this could/should be generalized in the SetupBoundaries structure..
     reflectivities_leftmoving =  -bdry.r
@@ -221,7 +250,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagato
     # Note that this is different from dancer() since here we do not take the mirror
     # explicit, such that also a transmissivity can be calculated
 
-    #emit = zeros(length(bdry.distance), 2, length(X), length(Y))
+
     # TODO: propagation through and emission from last bdry to the right
     if reflect == nothing
         if emit == nothing
