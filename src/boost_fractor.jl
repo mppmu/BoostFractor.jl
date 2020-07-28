@@ -47,7 +47,7 @@ function get_kspace_coords(RealSpaceCoords)
 end
 
 
-struct SetupBoundaries
+mutable struct SetupBoundaries
     distance::Array{Float64,1} # = [15e-3, 5e-3,0]
     # Boundary reflection coefficient for right-propagating wave
     r::Array{Complex{Float64},1}   # = [1,-0.5,0.5,0]
