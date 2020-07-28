@@ -48,6 +48,14 @@ function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lma
     return Waveguidemodes(M,L,mode_patterns,mode_kt,id,zeromatrix)
 end
 
+"""
+    index(wvgmodes::Waveguidemodes, k::Int64)
+
+Indexing function to get sub-matrices.
+"""
+function index(wvgmodes::Waveguidemodes, k::Int64)
+    return ((k-1)*wvgmodes.M*(2wvgmodes.L+1)+1):(k*wvgmodes.M*(2wvgmodes.L+1))
+end
 
 # ---------------------- Functionality ------------------------------------------------
 
@@ -125,7 +133,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
     if is_air
         # In air use the propagator we get
         function propagate(x)
-            return prop(copy(x), dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+            return prop(copy(x), dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
         end
         propfunc = propagate
     else
@@ -192,10 +200,10 @@ function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemode
     return transm
 end
 
-function axion_contrib(T,n1,n0, initial)
+function axion_contrib(T,n1,n0, initial, wvgmodes::Waveguidemodes)
     # Calculas one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
     # as in equation 4.14a
-    return (1. /n1^2 - 1. /n0^2)/2 .* (T[i(2),i(1)]*(copy(initial)) + T[i(2),i(2)]*(copy(initial)))
+    return (1. /n1^2 - 1. /n0^2)/2 .* (T[index(wvgmodes,2),index(wvgmodes,1)]*(copy(initial)) + T[index(wvgmodes,2),index(wvgmodes,2)]*(copy(initial)))
 end
 
 """
@@ -206,7 +214,7 @@ function calc_propagation_matrices(bdry::SetupBoundaries; f=10.0e9, prop=propaga
     Nregions = length(bdry.eps)
     lambda = wavelength(f)
     return [ propagation_matrix(bdry.distance[i], diskR, bdry.eps[i],
-            bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda;
+            bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda, coords, wvgmodes;
             prop=prop) for i in 1:(Nregions) ]
 end
 
@@ -255,33 +263,33 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
         # Add up the summands of (M[2,1]+M[1,1]) E_0
         # (M is a sum over T_{s+1}^m S_s from s=1 to m) and we have just calculated
         #  T_{s+1}^m in the previous iteration)
-        axion_beam .+= axion_contrib(transmissionfunction_complete, sqrt(bdry.eps[idx_reg(s+1)]), sqrt(bdry.eps[idx_reg(s)]), initial)
+        axion_beam .+= axion_contrib(transmissionfunction_complete, sqrt(bdry.eps[idx_reg(s+1)]), sqrt(bdry.eps[idx_reg(s)]), initial, wvgmodes)
 
         # calculate T_s^m ---------------------------
 
         # Propagation matrix (later become the subblocks of P)
         diffprop = (propagation_matrices == nothing ?
-                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda; prop=prop) :
+                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, wvgmodes; prop=prop) :
                         propagation_matrices[idx_reg(s)])
 
         # T_s^m = T_{s+1}^m G_s P_s
         transmissionfunction_complete = add_boundary(transmissionfunction_complete,
-                         sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop)
+                         sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, wvgmodes)
     end
 
     # The rest of 4.14a
-    boost =  - (transmissionfunction_complete[i(2),i(2)]) \ (axion_beam)
+    boost =  - (transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)]) \ (axion_beam)
     # The backslash operator A\b solves the linear system Ax = b for x
     # Alaternative ways are e.g.
-    #rtol = sqrt(eps(real(float(one(eltype(transmissionfunction_complete[i(2),i(2)]))))))
-    #boost = - pinv(transmissionfunction_complete[i(2),i(2)], rtol=rtol) * (axion_beam)
+    #rtol = sqrt(eps(real(float(one(eltype(transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)]))))))
+    #boost = - pinv(transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)], rtol=rtol) * (axion_beam)
 
     # If no reflectivity is ought to be calculated, we only return the axion field
     if reflect == nothing
         return boost
     end
 
-    refl = transmissionfunction_complete[i(2),i(2)] \
-           ((transmissionfunction_complete[i(2),i(1)]) * (reflect))
+    refl = transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)] \
+           ((transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,1)]) * (reflect))
     return boost, refl
 end
