@@ -69,12 +69,12 @@ function dancer(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=1
             # Move left leg (rightmoving)
             if i > 1
                 # In place propagate left leg:
-                fields[i-1,rightmoving,:,:] = prop(fields[i-1,rightmoving,:,:], bdry.distance[i-1], diskR, bdry.eps[i-1], bdry.relative_tilt_x[i-1], bdry.relative_tilt_y[i-1], bdry.relative_surfaces[i-1,:,:], lambda)
+                fields[i-1,rightmoving,:,:] = prop(fields[i-1,rightmoving,:,:], bdry.distance[i-1], diskR, bdry.eps[i-1], bdry.relative_tilt_x[i-1], bdry.relative_tilt_y[i-1], bdry.relative_surfaces[i-1,:,:], lambda, coords)
             end
 
             # Move right leg (leftmoving)
             if i < length(bdry.r)
-                fields[i,leftmoving,:,:] = prop(fields[i,leftmoving,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda)
+                fields[i,leftmoving,:,:] = prop(fields[i,leftmoving,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda, coords)
             end
 
             # Reflection & Transmission
@@ -241,7 +241,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
     # Push forward the fields rightmoving...
     for i in 2:1:length(bdry.distance)-1
         # Propagate to the right
-        fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda)
+        fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda, coords)
         # Reflect and Transmit
         fields[i+1,:,:] .+= transmissivities_rightmoving[i].*fields[i,:,:]
         fields[i,:,:]   .*= reflectivities_rightmoving[i]
@@ -272,7 +272,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
             # Do NOT Propagate to the fields in the current gap to the right
             # Region 1 always contains left-moving fields.
             # Propagate to the fields in the next gap to the left
-            fields[i+1,:,:] = prop(fields[i+1,:,:], bdry.distance[i+1], diskR, bdry.eps[i+1], bdry.relative_tilt_x[i+1], bdry.relative_tilt_y[i+1], bdry.relative_surfaces[i+1,:,:], lambda)
+            fields[i+1,:,:] = prop(fields[i+1,:,:], bdry.distance[i+1], diskR, bdry.eps[i+1], bdry.relative_tilt_x[i+1], bdry.relative_tilt_y[i+1], bdry.relative_surfaces[i+1,:,:], lambda, coords)
             # Reflect and Transmit
             # No backup copy needed since nothing is coming from the i = 1 region
             # Transmit
@@ -284,9 +284,9 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
         # Push forward...
         for i in 2:1:length(bdry.distance)-2
             # Propagate to the fields in the current gap to the right
-            fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda)
+            fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda, coords)
             # Propagate to the fields in the next gap to the left
-            fields[i+1,:,:] = prop(fields[i+1,:,:], bdry.distance[i+1], diskR, bdry.eps[i+1], bdry.relative_tilt_x[i+1], bdry.relative_tilt_y[i+1], bdry.relative_surfaces[i+1,:,:], lambda)
+            fields[i+1,:,:] = prop(fields[i+1,:,:], bdry.distance[i+1], diskR, bdry.eps[i+1], bdry.relative_tilt_x[i+1], bdry.relative_tilt_y[i+1], bdry.relative_surfaces[i+1,:,:], lambda, coords)
             # Reflect and Transmit
             fields_next_gap_copy = copy(fields[i+1,:,:])
             fields[i+1,:,:] .*= reflectivities_leftmoving[i]
@@ -297,7 +297,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
 
         let i = length(bdry.distance)-1
             # Propagate to the fields in the current gap to the right
-            fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda)
+            fields[i,:,:] = prop(fields[i,:,:], bdry.distance[i], diskR, bdry.eps[i], bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda, coords)
             # DO NOT Propagate to the fields in the next gap to the left
             # Since it only contains fields propagating to the right
             # Reflect and Transmit

@@ -75,7 +75,7 @@ function axion_induced_modes(coords::CoordinateSystem, wvgmodes::Waveguidemodes;
     # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
         B = Array{Complex{Float64}}(B)
-        lambda = wavelength(f)
+        lambda = lambda(f)
         Ma_PerMeter = 2pi/lambda # k = 2pi/lambda (c/f = lambda)
         B .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for x in coords.X, y in coords.Y]
     end
@@ -204,23 +204,23 @@ Useful, if they should be altered later (e.g. take out modes, add some additiona
 """
 function calc_propagation_matrices(bdry::SetupBoundaries; f=10.0e9, prop=propagator, diskR=0.15)
     Nregions = length(bdry.eps)
-    wavelength = wavelength(f)
+    lambda = wavelength(f)
     return [ propagation_matrix(bdry.distance[i], diskR, bdry.eps[i],
-            bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], wavelength;
+            bdry.relative_tilt_x[i], bdry.relative_tilt_y[i], bdry.relative_surfaces[i,:,:], lambda;
             prop=prop) for i in 1:(Nregions) ]
 end
 
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::Waveguidemodes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::Waveguidemodes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(coords,wvgmodes;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
 
     #Definitions
     transmissionfunction_complete = [wvgmodes.id wvgmodes.zeromatrix ; wvgmodes.zeromatrix wvgmodes.id ]
 
-    wavelength = wavelength(f)
+    lambda = wavelength(f)
 
     initial = emit
     #println(initial)
@@ -261,7 +261,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
 
         # Propagation matrix (later become the subblocks of P)
         diffprop = (propagation_matrices == nothing ?
-                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], wavelength; prop=prop) :
+                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda; prop=prop) :
                         propagation_matrices[idx_reg(s)])
 
         # T_s^m = T_{s+1}^m G_s P_s

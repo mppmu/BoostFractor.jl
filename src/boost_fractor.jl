@@ -132,7 +132,7 @@ function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords:
     # Call the propagator and add a phase imposed by the tilt
     # Assumptions: Tilt is small, the additional phase is obtained by propagating
     #              all fields just with k0 to the tilted surface (only valid if diffraction effects are small)
-    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
     # Tilts:
     E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y]
     # More general: Any surface misalignments:
@@ -202,7 +202,7 @@ end
 """
 This propagator just does the phase propagation.
 """
-function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Version of the propagator without the fft
     # should be faster and easy to check consistency with 1D calc
 
