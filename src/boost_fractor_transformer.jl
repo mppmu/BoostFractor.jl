@@ -224,6 +224,8 @@ Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation
 function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::Waveguidemodes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(coords,wvgmodes;B=ones(length(coords.X),length(coords.Y)),velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
+    # To have same SetupBoundaries object for all codes and cheerleader assumes NaN, just define a high constant
+    bdry.eps[isnan.(bdry.eps)] .= 1e30
 
     #Definitions
     transmissionfunction_complete = [wvgmodes.id wvgmodes.zeromatrix ; wvgmodes.zeromatrix wvgmodes.id ]

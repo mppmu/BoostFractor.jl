@@ -22,7 +22,16 @@ Propagates the fields through the system
 * `returnsum`:      If false, the out-propagating contributions after each iteration will be returned, without summing.
 * `immediatesum`:   If false, the out-propagating contributions will be saved and summed up at the end.
 """
-function dancer(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnsum=true, immediatesum=true)
+function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnsum=true, immediatesum=true)
+
+    # Make dancer swallow the same SetupBoundaries object as cheerleader and transformer
+    bdry = deepcopy(sbdry)
+    bdry.eps = bdry.eps[2:end]
+    bdry.distance = bdry.distance[2:end]
+    bdry.relative_tilt_x = bdry.relative_tilt_x[2:end]
+    bdry.relative_tilt_y = bdry.relative_tilt_y[2:end]
+    bdry.relative_surfaces = bdry.relative_surfaces[2:end,:,:]
+    append!(bdry.r, 0.0)
 
     rightmoving = 1
     leftmoving = 2

@@ -64,27 +64,28 @@ end
 
 ## Convenient tools ################################################################################
 
-function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+1), relative_tilt_y=zeros(2*diskno+1), relative_surfaces=zeros(2*diskno+1 , length(coords.X), length(coords.Y)))
+function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
 
     # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
     if distance == nothing # [m]
-        distance = [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ]
+        distance = [0.0]
+        append!(distance, [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ])
         append!(distance, 0e-3) #8e-3)
     end
 
     if reflectivities == nothing
         reflectivities = [1.0]
         append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
-        append!(reflectivities, 0)
     end
 
     if epsilon == nothing
-        epsilon = [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ]
+        epsilon = [NaN]
+        append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
         append!(epsilon, 1.0)
     end
 
     # Check if initialization was self-consistent
-    length(distance) == length(reflectivities)-1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
+    length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
 
     return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
