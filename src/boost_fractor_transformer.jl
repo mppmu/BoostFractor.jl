@@ -17,6 +17,12 @@ using SpecialFunctions, FunctionZeros
 
 # ---------------------- Initializations ------------------------------------------------
 
+# Pre-calculate the mode patterns to speed up the matching calculations
+"""
+    Waveguidemodes
+
+Doc: TODO
+"""
 struct Waveguidemodes
     M::Int64
     L::Int64
@@ -26,8 +32,12 @@ struct Waveguidemodes
     zeromatrix::Array{Complex{Float64}, 2}
 end
 
-function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15)
+"""
+    SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15)
 
+Doc: TODO
+"""
+function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15)
     if ThreeDim
         M, L = Mmax,Lmax
         mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
@@ -60,6 +70,8 @@ end
 # ---------------------- Functionality ------------------------------------------------
 
 """
+    waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
+
 Calculate the transverse k and field distribution for a dielectric waveguidemode
 """
 function waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
@@ -138,7 +150,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         propfunc = propagate
     else
         # In the disk the modes are eigenmodes, so we only have to apply the
-        # inaccuracies and can apply the propagation later seperately
+        # inaccuracies and can apply the propagation later separately
         propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y].*exp.(-1im*k0*surface)
         # Applying exp element-wise to the surface is very important otherwise it is e^M with M matrix
     end
@@ -201,7 +213,7 @@ function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemode
 end
 
 function axion_contrib(T,n1,n0, initial, wvgmodes::Waveguidemodes)
-    # Calculas one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
+    # Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
     # as in equation 4.14a
     return (1. /n1^2 - 1. /n0^2)/2 .* (T[index(wvgmodes,2),index(wvgmodes,1)]*(copy(initial)) + T[index(wvgmodes,2),index(wvgmodes,2)]*(copy(initial)))
 end

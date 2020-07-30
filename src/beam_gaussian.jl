@@ -9,10 +9,23 @@
 
 export gauss_profile
 
+
+@doc raw"""
+    gauss_profile(coords::CoordinateSystem; z = 0.000000001, omega0 = 0.1, f = 10e9)
+
+Compute normalized 2D gaussian beam profile at given z position (waist at ```z = 0```).
+
+# Arguments
+- `coords`: contains X,Y and Kx,Ky coordinates
+- `z`: Distance from beam waist
+- `omega0` ```> 0```: Beam waist radius
+- `f` ```> 0```: Frequency of monochromatic EM radiation
+"""
 function gauss_profile(coords::CoordinateSystem; z = 0.000000001, omega0 = 0.1, f = 10e9)
     radius = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
 
     lambda = wavelength(f)
+  
     #Gaussian Beam profile:
     k = 2*pi/lambda
     zR = pi*omega0^2/lambda
