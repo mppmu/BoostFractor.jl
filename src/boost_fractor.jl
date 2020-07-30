@@ -11,7 +11,40 @@
 #
 
 
-export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D,init_coords
+export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D, CoordinateSystem, SeedCoordinateSystem, wavelength
+
+function wavelength(frequency::Float64)
+    speed_of_light = 299792458. # [m]
+    return speed_of_light / frequency
+end
+
+struct CoordinateSystem
+    # Real Space Coordinates
+    X::Array{Float64,1}
+    Y::Array{Float64,1}
+    # K space Coordinates
+    kX::Array{Float64,1}
+    kY::Array{Float64,1}
+end
+
+function SeedCoordinateSystem(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5) # units [m]
+    kX = get_kspace_coords(X)
+    kY = get_kspace_coords(Y)
+    return CoordinateSystem(X, Y, kX, kY)
+end
+
+
+"""
+    get_kspace_coords(RealSpaceCoords)
+
+Calculate k space coordinate system from real space one. Helper function for SeedCoordinateSystem.
+"""
+function get_kspace_coords(RealSpaceCoords)
+    minimum_Kspace = 2*pi/(maximum(RealSpaceCoords)*2)
+    maximum_Kspace = minimum_Kspace * (length(RealSpaceCoords)-1)/2
+    coordsKspace = -maximum_Kspace:minimum_Kspace:maximum_Kspace
+    return coordsKspace
+end
 
 @doc raw"""
 # Summary
@@ -36,27 +69,7 @@ mutable struct SetupBoundaries
     relative_surfaces::Array{Complex{Float64},3} # = [z, x,y ]
     # etc.
 end
-SetupBoundaries(distance::Array{Float64,1}, r::Array{Complex{Float64},1}, eps::Array{Complex{Float64},1}) = SetupBoundaries(distance,r,eps, zeros(length(distance)), zeros(length(distance)), zeros(length(distance), length(X), length(Y) ));
-SetupBoundaries(distance::Array{Float64,1}) = SetupBoundaries(distance,[1,-0.5,0.5,0],[1,9,1], [0.0,0.0,0.0], [0.0,0.0,0.0]);
-SetupBoundaries() = SetupBoundaries([15e-3, 5e-3,0]);
 
-
-@doc raw"""
-# Summary
-    mutable struct DiskDefinition <: Any
-
-Define properties of dielectric discs (same for all discs).
-
-# Fields:
-- `thickness::Float64` ```> 0```: Thickness of discs
-- `eps::Complex{Float64}` ```> 1```: Dielectric permittivity
-"""
-mutable struct DiskDefiniton
-    thickness::Float64 # = 1e-3
-    # ??? Boundary reflection coefficient for right-propagating wave
-    eps::Complex{Float64} # = 9
-end
-DiskDefiniton() = DiskDefiniton(1e-3, 9)
 
 ## Convenient tools ################################################################################
 @doc raw"""
@@ -67,57 +80,40 @@ Initialize `mutable struct SetupBoundaries` with sensible values.
 # Arguments
 - `diskno::Int` ```> 0```: Number of dielectric discs
 """
-function SeedSetupBoundaries(diskno=3)
+function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
 
-    distances = [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ]
-    append!(distances, 0e-3) #8e-3)
+    # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
+    if distance == nothing # [m]
+        distance = [0.0]
+        append!(distance, [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ])
+        append!(distance, 0e-3) #8e-3)
+    end
 
-    reflectivities = [1.0]
-    append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
-    append!(reflectivities, 0)
+    if reflectivities == nothing
+        reflectivities = [1.0]
+        append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
+    end
 
-    epsilon = [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ]
-    append!(epsilon, 1.0)
+    if epsilon == nothing
+        epsilon = [NaN]
+        append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
+        append!(epsilon, 1.0)
+    end
 
-    return SetupBoundaries(distances, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon))
+    # Check if initialization was self-consistent
+    length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
+
+    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
 
 ## The heart of it #################################################################################
-global X = -0.5:0.01:0.5
-global Y = -0.5:0.01:0.5
 
-global minimum_Kx = 2*pi/(maximum(X)*2)
-global maximum_Kx = minimum_Kx * (length(X)-1)/2
-global coordsKx = -maximum_Kx:minimum_Kx:maximum_Kx
-global minimum_Ky = 2*pi/(maximum(Y)*2)
-global maximum_Ky = minimum_Ky * (length(Y)-1)/2
-global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
-
-"""
-    init_coords(Xset, Yset)
-
-Initialize coordinate system in real and fourier space.
-
-# Arguments
-- `Xset::AbstractRange{Float}`: x coordinates
-- `Yset::AbstractRange{Float}`: y coordinates
-"""
-function init_coords(Xset,Yset)
-    #TODO: This function is definitely bad style!
-    global X=Xset
-    global Y=Yset
-    global minimum_Kx = 2*pi/(maximum(X)*2)
-    global maximum_Kx = minimum_Kx * (length(X)-1)/2
-    global coordsKx = -maximum_Kx:minimum_Kx:maximum_Kx
-    global minimum_Ky = 2*pi/(maximum(Y)*2)
-    global maximum_Ky = minimum_Ky * (length(Y)-1)/2
-    global coordsKy = -maximum_Ky:minimum_Ky:maximum_Ky
-end
-
+#TODO: This function is no longer supported. reflectivity_transmissivity_1d does not exist; DiskDefinition has merged into SetuoBoundaries.
 @doc raw"""
     initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
 
+OUTDATED! Does not work, do not use!
 Calculate reflection and transmission coefficients.
 
 # Arguments
@@ -125,7 +121,7 @@ Calculate reflection and transmission coefficients.
 - `bdry::SetupBoundaries`: Properties of dielectric boundaries
 - `disk::DiskDefiniton`: Properties of dielectric discs
 """
-function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
+function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, coords::CoordinateSystem)#, disk::DiskDefiniton)
     if disk == nothing
         # Iniatilize reflection coefficients according to epsilon
         r_left = ones(length(bdry.eps))
@@ -140,9 +136,9 @@ function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries
     else
         # Initailize reflection coefficients according to disk model
         ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
-        r_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*ref
+        r_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*ref
         r_right = r_left
-        t_left = ones(length(bdry.eps),length(coordsKx),length(coordsKy)).*trans
+        t_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*trans
         t_right = t_left
     end
     return r_left, r_right, t_left, t_right
@@ -172,12 +168,12 @@ with k0 to the tilted surface (only valid if diffraction effects are small).
 
 See also: [`propagatorMomentumSpace`](@ref)
 """
-function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     k0 = 2*pi/lambda*sqrt(eps)
     # Call the propagator and add a phase imposed by the tilt
-    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
     # Tilts:
-    E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
+    E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y]
     # More general: Any surface misalignments:
     E0 .*= exp.(-1im*k0*surface) #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
     return E0
@@ -189,9 +185,9 @@ end
 Wrapped by [`propagator`](@ref). Go there for documentation. Tilt arguments to be
 compatible with other propagators.
 """
-function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Diffract at the Disk. Only the disk is diffracting.
-    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
+    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in coords.X, y in coords.Y]
     # FFT the E-Field to spatial frequencies
     # fft! and ifft! in the current release (1.2.2) only work with type ComplexF32 and ComplexF64
     # fft and ifft seem more stable
@@ -204,7 +200,7 @@ function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
     #       At the moment the script will just also propagate with a loss for those components
     # Propagate through space
     k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
     E0 = E0 .* exp.(-1im*k_prop*dz)
     # Backtransform
     E0 = FFTW.ifftshift(E0)
@@ -218,10 +214,10 @@ end
 Propagator that assumes E0 is already in momentum space. Mix between [`propagator`](@ref)
 and [`propagatorNoTilts`](@ref). Go to [`propagator`](@ref) for documentation.
 """
-function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Propagate through space
     k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coordsKx, Ky in coordsKy]
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
     E0 = E0 .* exp.(-1im*k_prop*dz)
 
     # Transform to position space
@@ -229,11 +225,11 @@ function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, la
     FFTW.ifft!(E0)
 
     # Diffract at the Disk. Only the disk is diffracting.
-    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in X, y in Y]
+    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in coords.X, y in coords.Y]
 
     # Kick (tilt)
     if tilt_x != 0 || tilt_y != 0
-        E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in X, y in Y]
+        E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y]
     end
 
     # FFT the E-Field to spatial frequencies / momentum space
@@ -249,7 +245,7 @@ end
 This propagator just does the phase propagation. Go to [`propagator`](@ref)
 for documentation. 3D arguments to be compatible with other propagators.
 """
-function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Version of the propagator without the fft
     # should be faster and easy to check consistency with 1D calc
 
