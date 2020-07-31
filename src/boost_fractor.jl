@@ -83,18 +83,18 @@ Initialize `mutable struct SetupBoundaries` with sensible values.
 function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
 
     # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
-    if distance == nothing # [m]
+    if distance === nothing # [m]
         distance = [0.0]
         append!(distance, [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ])
         append!(distance, 0e-3) #8e-3)
     end
 
-    if reflectivities == nothing
+    if reflectivities === nothing
         reflectivities = [1.0]
         append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
     end
 
-    if epsilon == nothing
+    if epsilon === nothing
         epsilon = [NaN]
         append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
         append!(epsilon, 1.0)
@@ -122,7 +122,7 @@ Calculate reflection and transmission coefficients.
 - `disk::DiskDefiniton`: Properties of dielectric discs
 """
 function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, coords::CoordinateSystem)#, disk::DiskDefiniton)
-    if disk == nothing
+    if disk === nothing
         # Iniatilize reflection coefficients according to epsilon
         r_left = ones(length(bdry.eps))
         r_left[1] = -1

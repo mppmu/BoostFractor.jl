@@ -282,7 +282,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
         # calculate T_s^m ---------------------------
 
         # Propagation matrix (later become the subblocks of P)
-        diffprop = (propagation_matrices == nothing ?
+        diffprop = (propagation_matrices === nothing ?
                         propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, wvgmodes; prop=prop) :
                         propagation_matrices[idx_reg(s)])
 
@@ -299,7 +299,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
     #boost = - pinv(transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)], rtol=rtol) * (axion_beam)
 
     # If no reflectivity is ought to be calculated, we only return the axion field
-    if reflect == nothing
+    if reflect === nothing
         return boost
     end
 

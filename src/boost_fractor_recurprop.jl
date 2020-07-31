@@ -50,8 +50,8 @@ function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=
     end
 
     # TODO: propagation through and emission from last bdry to the right
-    if reflect == nothing
-        if emit == nothing
+    if reflect === nothing
+        if emit === nothing
             fields = dance_intro(bdry,coords;diskR=diskR)
         else
             fields = emit
@@ -155,7 +155,7 @@ function dance_intro(bdry::SetupBoundaries, coords::CoordinateSystem; bfield=not
     fields_initial = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
 
     # Inaccuracies of the emitted fields, BField and Velocity Effects ###################
-    if bfield == nothing
+    if bfield === nothing
         # Make sure that there is only emission on the disk surfaces
         bfield = [x^2 + y^2 > diskR^2 ? 0.0 : 1.0 for z in ones(length(bdry.distance)+1), x in coords.X, y in coords.Y]
     end
@@ -257,8 +257,8 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
 
 
     # TODO: propagation through and emission from last bdry to the right
-    if reflect == nothing
-        if emit == nothing
+    if reflect === nothing
+        if emit === nothing
             emit = Array{Complex{Float64}}(zeros(length(bdry.distance), 2, length(coords.X), length(coords.Y)))
             # we may reuse the dance_intro-function in the standard case
             bdrycpy = deepcopy(bdry)
