@@ -8,15 +8,15 @@ using FFTW
 
 @everywhere begin
     # General Interface
-    include("BoostFractor.jl/src/boost_fractor.jl")
+    include("../src/boost_fractor.jl")
 
     # Differnt algorithms
-    include("BoostFractor.jl/src/boost_fractor_recurprop.jl")
-    include("BoostFractor.jl/src/boost_fractor_transformer.jl")
+    include("../src/boost_fractor_recurprop.jl")
+    include("../src/boost_fractor_transformer.jl")
 
     # Some convenient tools
-    include("BoostFractor.jl/src/beam_gaussian.jl")
-    include("BoostFractor.jl/src/beam_coupling.jl")
+    include("../src/beam_gaussian.jl")
+    include("../src/beam_coupling.jl")
 end
 
 ### Test CHEERLEADER ###
