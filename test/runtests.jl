@@ -1,5 +1,8 @@
 # This file is a part of BoostFractor.jl, licensed under the MIT License (MIT).
 
+# Note: Travis doesn't seem to like getting no output for 10 mins.
+#       Re-added status updates for CHEERLEADER and DANCER for this reason.
+
 using Test
 using Distributed
 using FFTW
@@ -49,6 +52,7 @@ gauss_shape = gauss_profile(coords; z = 1e-9, omega0 = 0.097, f = 22e9)
 @time result = @sync @distributed (zcat) for i in 1:length(Deps)
     deps = Deps[i]
     dnu = pi # One could optimize this for maximal boost in 1D before; its left out here for simplicitly and just set to pi
+    print("Running dEps = $deps (dNu = $dnu)... \n")
 
     # Set the distances (the wavelength in free space is 30mm, in the medium 10mm (free space devided by sqrt(epsilon))
     sbdry.distance = [0.0,(dnu)*3e-2/(2*pi), (deps)*1e-2/(2*pi),0.e-3];
@@ -92,6 +96,7 @@ end
 @time result_dancer = @sync @distributed (zcat) for i in 1:length(Deps)
     deps = Deps[i]
     dnu = pi # One could optimize this for maximal boost in 1D before; its left out here for simplicitly and just set to pi
+    print("Running dEps = $deps (dNu = $dnu)... \n")
 
     # Set the distances (the wavelength in free space is 30mm, in the medium 10mm (free space devided by sqrt(epsilon))
     sbdry.distance = [0.0, (dnu)*3e-2/(2*pi), Deps[i]*1e-2/(2*pi),0];
