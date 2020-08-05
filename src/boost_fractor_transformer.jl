@@ -222,7 +222,7 @@ function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemode
 end
 
 """
-Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
+Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
 as in equation 4.14a
 """
 function axion_contrib(T,n1,n0, initial, wvgmodes::Waveguidemodes)
