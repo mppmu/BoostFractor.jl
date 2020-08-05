@@ -61,7 +61,7 @@ end
 """
     index(wvgmodes::Waveguidemodes, k::Int64)
 
-Indexing function to get sub-matrices.
+Indexing function to get sub-matrices. (Compare Knirck 6.18.)
 """
 function index(wvgmodes::Waveguidemodes, k::Int64)
     return ((k-1)*wvgmodes.M*(2wvgmodes.L+1)+1):(k*wvgmodes.M*(2wvgmodes.L+1))
@@ -72,7 +72,8 @@ end
 """
     waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
 
-Calculate the transverse k and field distribution for a dielectric waveguidemode
+Calculate the transverse k and field distribution for a dielectric waveguidemode.
+Implements Knirck 6.12.
 """
 function waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
     RR = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
@@ -89,6 +90,8 @@ end
 """
 Calculate the vector of mode-coefficients that describe the uniform axion-induced
 field and that is normalized to power 1.
+
+Implements Knirck 6.17.
 """
 function axion_induced_modes(coords::CoordinateSystem, wvgmodes::Waveguidemodes;B=ones(length(coords.X), length(coords.Y)), velocity_x=0, diskR=0.15,f=20e9)
 
@@ -109,6 +112,7 @@ function axion_induced_modes(coords::CoordinateSystem, wvgmodes::Waveguidemodes;
 
     modes_intital = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1)))
     for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
+        # (m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1 walks over all possible m,l combinations
         modes_intital[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1] =
                 sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* B )
     end
@@ -135,6 +139,8 @@ end
 
 # Mode Mixing Matrix for the Propagation in a gap
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
+"""
+"""
 function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, wvgmodes::Waveguidemodes; is_air=(eps==1), onlydiagonal=false, prop=propagator)
     matching_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
 
@@ -163,6 +169,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         for m in (onlydiagonal ? [m_prime] : 1:wvgmodes.M), l in (onlydiagonal ? [l_prime] : -wvgmodes.L:wvgmodes.L)
 
             # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
+            # 6.15 in Knirck
             matching_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m_prime-1)*(2wvgmodes.L+1)+l_prime+wvgmodes.L+1] =
                     sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* propagated ) #*dx*dy
 
@@ -193,12 +200,14 @@ end
 
 # Comments refer to the formuli in the theoretical foundations paper (arXiv:1612.07057v2)
 # but generalized to 3D making L and R vectors.
-
+"""
+Calculate Transfer matrix like in 4.9. 
+"""
 function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemodes)
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
-    # The matrix encoding reflection and transmission
+    # The matrix encoding reflection and transmission (Knirck 6.18)
     G = (( (1. /(2*n_right)).*[(n_right+n_left)*wvgmodes.id (n_right-n_left)*wvgmodes.id ; (n_right-n_left)*wvgmodes.id (n_right+n_left)*wvgmodes.id] ))
 
     # The product, i.e. transfer matrix
@@ -212,9 +221,11 @@ function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemode
     return transm
 end
 
+"""
+Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
+as in equation 4.14a
+"""
 function axion_contrib(T,n1,n0, initial, wvgmodes::Waveguidemodes)
-    # Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = \sum{s=1...m} (T_s^m[2,1]+T_s^m[1,1]) E_0
-    # as in equation 4.14a
     return (1. /n1^2 - 1. /n0^2)/2 .* (T[index(wvgmodes,2),index(wvgmodes,1)]*(copy(initial)) + T[index(wvgmodes,2),index(wvgmodes,2)]*(copy(initial)))
 end
 
