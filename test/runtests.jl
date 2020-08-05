@@ -22,6 +22,9 @@ using FFTW
     include("../src/beam_coupling.jl")
 end
 
+gauss_shape = gauss_profile(coords; z = 1e-9, omega0 = 0.097, f = 22e9)
+@test gauss_shape[1] ≈ 8.343077704841396e-24 - 4.0474183340928325e-30im
+
 ### Test CHEERLEADER ###
 @everywhere begin
     # Initialize Coordinate System
@@ -41,9 +44,6 @@ end
     sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
     
 end
-
-gauss_shape = gauss_profile(coords; z = 1e-9, omega0 = 0.097, f = 22e9)
-@test gauss_shape[1] ≈ 8.343077704841396e-24 - 4.0474183340928325e-30im
 
 # Let us sweep over different disk phase depths for a disk at distance lambda/2 infront of the mirror
 # Of course the same way you can create a parallelized frequency sweep, etc.

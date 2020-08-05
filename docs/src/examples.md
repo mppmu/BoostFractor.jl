@@ -11,7 +11,7 @@ File: `Beam Shapes.ipynb`
 
 ### Single Disk
 File: `Single Disk.ipynb`
- * Initilization & Run of all algorithms for a single disk setup
+ * Initialization & Run of all algorithms for a single disk setup
  * Comparision between the algorithms
  
 ### Transformer, 20 Disks
