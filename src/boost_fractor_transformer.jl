@@ -229,8 +229,9 @@ function add_boundary(transm, n_left, n_right, diffprop, wvgmodes::Waveguidemode
     G = (( (1. /(2*n_right)).*[(n_right+n_left)*wvgmodes.id (n_right-n_left)*wvgmodes.id ; (n_right-n_left)*wvgmodes.id (n_right+n_left)*wvgmodes.id] ))
 
     # The product, i.e. transfer matrix
-    transm *= G * [diffprop wvgmodes.zeromatrix; wvgmodes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
-
+    for i in 1:size(wvgmodes.mode_patterns)[5]
+        transm[:,:,i] *= G * [diffprop[:,:,i] wvgmodes.zeromatrix; wvgmodes.zeromatrix inv(Array{Complex{Float64}}(diffprop[:,:,i]))]
+    end
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
     # This is convenient, because using this iteratively one arrives at exactly the T_n^m matrix from
@@ -244,7 +245,11 @@ Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = sum{s=1...m} (T_s^m[2,1
 as in equation 4.14a
 """
 function axion_contrib(T,n1,n0, initial, wvgmodes::Waveguidemodes)
-    return (1. /n1^2 - 1. /n0^2)/2 .* (T[index(wvgmodes,2),index(wvgmodes,1)]*(copy(initial)) + T[index(wvgmodes,2),index(wvgmodes,2)]*(copy(initial)))
+    axion_beam = Array{Complex{Float64}}(zeros(size(initial)))
+    for i in 1:size(wvgmodes.mode_patterns)[5]
+        axion_beam[:,i] = (1. /n1^2 - 1. /n0^2)/2 .* (T[index(wvgmodes,2),index(wvgmodes,1),i]*(copy(initial[:,i])) + T[index(wvgmodes,2),index(wvgmodes,2),i]*(copy(initial[:,i])))
+    end
+    return axion_beam
 end
 
 """
@@ -270,12 +275,16 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
 
     #Definitions
     transmissionfunction_complete = [wvgmodes.id wvgmodes.zeromatrix ; wvgmodes.zeromatrix wvgmodes.id ]
-
+    if size(wvgmodes.mode_patterns)[5] == 1
+        transmissionfunction_complete = reshape(transmissionfunction_complete, (size(transmissionfunction_complete)...,size(wvgmodes.mode_patterns)[5]))
+    else
+        transmissionfunction_complete = cat(transmissionfunction_complete,transmissionfunction_complete,transmissionfunction_complete, dims=3)
+    end
     lambda = wavelength(f)
 
     initial = emit
     #println(initial)
-    axion_beam = Array{Complex{Float64}}(zeros((wvgmodes.M)*(2wvgmodes.L+1)))
+    axion_beam = Array{Complex{Float64}}(zeros((wvgmodes.M)*(2wvgmodes.L+1),size(wvgmodes.mode_patterns)[5]))
     #println(axion_beam)
 
     #=
@@ -313,7 +322,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
         # Propagation matrix (later become the subblocks of P)
         diffprop = (propagation_matrices === nothing ?
                         propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, wvgmodes; prop=prop) :
-                        propagation_matrices[idx_reg(s)])
+                        propagation_matrices[idx_reg(s)]) # I don't think this works if you stuff in propagation_matrices!
 
         # T_s^m = T_{s+1}^m G_s P_s
         transmissionfunction_complete = add_boundary(transmissionfunction_complete,
@@ -321,9 +330,12 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
     end
 
     # The rest of 4.14a
-    boost =  - (transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)]) \ (axion_beam)
+    boost = Array{Complex{Float64}}(zeros(size(axion_beam)))
+    for i in 1:size(axion_beam)[2]
+        boost[:,i] =  - (transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2),i]) \ (axion_beam[:,i])
+    end
     # The backslash operator A\b solves the linear system Ax = b for x
-    # Alaternative ways are e.g.
+    # Alternative ways are e.g.
     #rtol = sqrt(eps(real(float(one(eltype(transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)]))))))
     #boost = - pinv(transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)], rtol=rtol) * (axion_beam)
 
@@ -332,7 +344,11 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, wvgmodes::
         return boost
     end
 
-    refl = transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2)] \
-           ((transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,1)]) * (reflect))
+    #this part is not tested yet!
+    refl = Array{Complex{Float64}}(zeros(size(reflect)))
+    for i in 1:size(reflect)[2]
+        refl[:,i] = transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,2),i] \
+                ((transmissionfunction_complete[index(wvgmodes,2),index(wvgmodes,1),i]) * (reflect[:,i]))
+    end
     return boost, refl
 end
