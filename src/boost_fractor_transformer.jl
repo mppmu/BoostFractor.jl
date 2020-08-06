@@ -26,7 +26,7 @@ Doc: TODO
 struct Waveguidemodes
     M::Int64
     L::Int64
-    mode_patterns::Array{Complex{Float64}, 4}
+    mode_patterns::Array{Complex{Float64}, 5}
     mode_kt::Array{Complex{Float64}, 2}
     id::Array{Complex{Float64}, 2}
     zeromatrix::Array{Complex{Float64}, 2}
@@ -37,18 +37,22 @@ end
 
 Doc: TODO
 """
-function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15)
+function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15,pattern_input=nothing)
     if ThreeDim
         M, L = Mmax,Lmax
-        mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y)))
+        if pattern_input === nothing # If no specific pattern is put in, assume that E field is treated as scalar. Will change in some future version.
+            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),1))
+        else
+            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),3))
+        end
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
         for m in 1:M, l in -L:L
-            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:] = waveguidemode(m,l,coords;diskR=diskR)
+            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:,:] = waveguidemode(m,l,coords;diskR=diskR,pattern_input=pattern_input)
         end
     else
         M = 1
         L = 0
-        mode_patterns = Array{Complex{Float64}}(ones(M,2*L+1, length(coords.X), length(coords.Y)))
+        mode_patterns = Array{Complex{Float64}}(ones(M,2*L+1, length(coords.X), length(coords.Y),1))
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
     end
 
@@ -75,15 +79,19 @@ end
 Calculate the transverse k and field distribution for a dielectric waveguidemode.
 Implements Knirck 6.12.
 """
-function waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03)
+function waveguidemode(m,l, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03,pattern_input=nothing)
     RR = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
     Phi = [atan(y,x) for x in coords.X, y in coords.Y]
     kr = besselj_zero(abs.(l),m)/diskR
-    pattern = besselj.(l,kr.*RR).*exp.(-1im*l*Phi)
-    pattern[RR .> diskR] .*= 0 # Cutoff
     ktransversal = kr
-
-    pattern ./= sqrt(sum(abs2.(pattern))) #*dx*dy)
+    if pattern_input === nothing
+        pattern = besselj.(l,kr.*RR).*exp.(-1im*l*Phi)
+        pattern[RR .> diskR] .*= 0 # Cutoff
+        pattern ./= sqrt(sum(abs2.(pattern))) #*dx*dy)
+        pattern = reshape(pattern, (size(pattern)...,1)) # Expand dims without putting additional values in
+    else
+        pattern = pattern_input
+    end
     return ktransversal, pattern
 end
 
@@ -110,14 +118,18 @@ function axion_induced_modes(coords::CoordinateSystem, wvgmodes::Waveguidemodes;
     #       integrals
     B ./= sqrt.( sum(abs2.(B)) )
 
-    modes_intital = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1)))
+    # Output mode coefficients either for Ey or for all spacial directions of E field
+    modes_intitial = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),size(wvgmodes.mode_patterns)[5]))
     for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
         # (m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1 walks over all possible m,l combinations
-        modes_intital[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1] =
-                sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* B )
+        for i in 1:size(wvgmodes.mode_patterns)[5]
+            modes_intitial[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1,i] =
+                    sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:,i]) .* B )
+        end
     end
 
-    return modes_intital
+
+    return modes_intitial
 end
 
 """
@@ -129,9 +141,11 @@ field2modes(pattern, coords::CoordinateSystem, wvgmodes::Waveguidemodes;diskR=0.
 Get the field distribution E(x,y) for a given vector of mode coefficients
 """
 function modes2field(modes, coords::CoordinateSystem, wvgmodes::Waveguidemodes)
-    result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y)))
+    result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), size(modes)[2]))
     for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
-        result .+= modes[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1].*wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]
+            for i in 1:size(modes)[2]
+                result[:,:,i] .+= modes[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1,i].*wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:,i]
+            end
     end
     return result
 end
@@ -142,7 +156,7 @@ end
 """
 """
 function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, wvgmodes::Waveguidemodes; is_air=(eps==1), onlydiagonal=false, prop=propagator)
-    matching_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
+    matching_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1), size(wvgmodes.mode_patterns)[5]))
 
     k0 = 2pi/lambda*sqrt(eps)
 
@@ -164,28 +178,32 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
     # Calculate the mixing matrix
     for m_prime in 1:wvgmodes.M, l_prime in -wvgmodes.L:wvgmodes.L
         # Propagated fields of mode (m_prime, l_prime)
-        propagated = propfunc(wvgmodes.mode_patterns[m_prime,l_prime+wvgmodes.L+1,:,:])
+        for i in 1:size(wvgmodes.mode_patterns)[5]
+            # If 3D E-field, fields propagate separately. For interaction need to implement in propagator.
+            propagated = propfunc(wvgmodes.mode_patterns[m_prime,l_prime+wvgmodes.L+1,:,:,i])
 
-        for m in (onlydiagonal ? [m_prime] : 1:wvgmodes.M), l in (onlydiagonal ? [l_prime] : -wvgmodes.L:wvgmodes.L)
+            for m in (onlydiagonal ? [m_prime] : 1:wvgmodes.M), l in (onlydiagonal ? [l_prime] : -wvgmodes.L:wvgmodes.L)
+                # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
+                # 6.15 in Knirck
+                matching_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m_prime-1)*(2wvgmodes.L+1)+l_prime+wvgmodes.L+1,i] =
+                        sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:,i]) .* propagated ) #*dx*dy
 
-            # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
-            # 6.15 in Knirck
-            matching_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m_prime-1)*(2wvgmodes.L+1)+l_prime+wvgmodes.L+1] =
-                    sum( conj.(wvgmodes.mode_patterns[m,l+wvgmodes.L+1,:,:]) .* propagated ) #*dx*dy
-
-            #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
+                #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
+            end
         end
     end
 
     if !is_air
-        propagation_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1)))
+        propagation_matrix = Array{Complex{Float64}}(zeros(wvgmodes.M*(2wvgmodes.L+1),wvgmodes.M*(2wvgmodes.L+1), size(wvgmodes.mode_patterns)[5]))
         #The propagation within the disk is still missing
         for m in 1:wvgmodes.M, l in -wvgmodes.L:wvgmodes.L
             kz = sqrt(k0^2 - wvgmodes.mode_kt[m,l+wvgmodes.L+1])
-            propagation_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1] = exp(-1im*kz*dz)
+            propagation_matrix[(m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1, (m-1)*(2wvgmodes.L+1)+l+wvgmodes.L+1,:] .= exp(-1im*kz*dz)
         end
         # It is important to note the multiplication from the left
-        matching_matrix = propagation_matrix*matching_matrix
+        for i in 1:size(wvgmodes.mode_patterns)[5]
+            matching_matrix[:,:,i] = propagation_matrix[:,:,i]*matching_matrix[:,:,i]
+        end
     end
 
     return matching_matrix
