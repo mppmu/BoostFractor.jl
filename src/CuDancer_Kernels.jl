@@ -1,4 +1,4 @@
-export gen_prop_cut,
+export gen_prop_cut
 
 @inline function CUDA.exp(x::T) where T <: Complex#complex exponential for GPU
     scale = CUDA.exp( x.re )
