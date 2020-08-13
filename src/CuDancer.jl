@@ -7,7 +7,7 @@
 #   Stefan Knirck
 #		add-on: Dominik Bergermann
 
-export SetupBoundaries, SeedSetupBoundaries, dancer, dance_intro, propagator, propagator1D,init_coords
+export cudancer
 
 
 
