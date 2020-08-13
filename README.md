@@ -1,6 +1,8 @@
-# BoostFractor.jl
+# BoostFractor.jl - Branch for Propagation Around The Disks
 
 MadMax electrodynamics simulation in Julia.
+
+*This branch implements code written by Dominik Bergermann to handle the propagation around the disks also within the `dancer()` function, based on a version before the `v0.1` release tag.*
 
 ## General Remarks
 For the ease of use and to make an easy overview possible, the things here are only a minimal subset of all the code I have written, i.e., I have left out all the code which is actually initializing my specific simulations, running, saving and evaluating them, including making nice plots. I might include some more examples at a later point when everything is more mature.
