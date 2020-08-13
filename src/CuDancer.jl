@@ -25,7 +25,7 @@ Propagates the fields through the system
 * `returnsum`:      If false, the out-propagating contributions after each iteration will be returned, without summing.
 * `immediatesum`:   If false, the out-propagating contributions will be saved and summed up at the end.
 """
-function dancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnsum=true, immediatesum=true)
+function cudancer(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnsum=true, immediatesum=true)
     init_coords(Xset, Yset);
 
     rightmoving = 1
