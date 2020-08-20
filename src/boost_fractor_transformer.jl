@@ -128,10 +128,10 @@ field2modes(pattern, coords::CoordinateSystem, modes::Modes;diskR=0.15) = axion_
 """
 Get the field distribution E(x,y) for a given vector of mode coefficients
 """
-function modes2field(modes, coords::CoordinateSystem, modes::Modes)
+function modes2field(mode_coeffs, coords::CoordinateSystem, modes::Modes)
     result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y)))
     for m in 1:modes.M, l in -modes.L:modes.L
-        result .+= modes[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:]
+        result .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:]
     end
     return result
 end
