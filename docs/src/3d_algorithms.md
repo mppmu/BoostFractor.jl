@@ -102,7 +102,7 @@ The X and Y grid should be set in such a way that the resolution is at least hal
 
 ## Transformer
 Apply transfer matrices to match modes between different regions.
-The transfer matrices for reflection/transmission are directly calculated using the permittivities. Therefore, there is no need to set the reflection coefficients anymore.
+The transfer matrices for reflection/transmission are directly calculated using the permittivities. Therefore, there is no need to set the reflection coefficients anymore. Note: epsilon = NaN in initialization to match behavior of cheerleader. However epsilon is still set in the code, so if you want to consider something other than a mirror, you can.
 
 Arguments:
 * `bdry`:           SetupBoundaries object, containing all relevant geometrical information (disk positions, epsilon, etc).
