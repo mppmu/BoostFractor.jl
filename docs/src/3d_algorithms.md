@@ -107,7 +107,7 @@ The transfer matrices for reflection/transmission are directly calculated using 
 Arguments:
 * `bdry`:           SetupBoundaries object, containing all relevant geometrical information (disk positions, epsilon, etc).
 * `coords`:         CoordinateSystem object containing X, Y coordinates in real and K space
-* `wvgmodes`:       Waveguidemodes object containing important information for modes
+* `modes`:       Modes object containing important information for modes
 * `f`:              Frequency in Hz
 * `prop`:           Propagator function to use. Standard is `propagator()`
 * `reflect`:        If nothing (standar value), the axion-induced signal is computed.
@@ -146,9 +146,9 @@ Normalization: For the boost factor the vector is normalized such that its absol
     Mmax = 10
     Lmax = 0 # l-Modes are irrelevant for the azimuthally symmetric haloscope
     # For a 1D calculation:
-    #wvgmodes = SeedWaveguidemodes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    #modes = SeedModes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     # For 3D:
-    wvgmodes = SeedWaveguidemodes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    modes = SeedModes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     
 end
 ```
