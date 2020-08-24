@@ -80,7 +80,7 @@ Initialize `mutable struct SetupBoundaries` with sensible values.
 # Arguments
 - `diskno::Int` ```> 0```: Number of dielectric discs
 """
-function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, reflectivities=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
+function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
 
     # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
     if distance === nothing # [m]
@@ -89,16 +89,15 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
         append!(distance, 0e-3) #8e-3)
     end
 
-    if reflectivities === nothing
-        reflectivities = [1.0]
-        append!(reflectivities, [ x % 2 == 1 ? -0.5 : 0.5 for x in 1:2*(diskno) ])
-    end
-
     if epsilon === nothing
         epsilon = [NaN]
         append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
         append!(epsilon, 1.0)
     end
+
+    reflectivities = [1.0]
+    R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
+    append!(reflectivities, R)
 
     # Check if initialization was self-consistent
     length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))

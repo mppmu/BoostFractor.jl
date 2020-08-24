@@ -34,11 +34,9 @@ end
     # No Tilt or surface roughness here.
     epsilon = 9
     eps = Array{Complex{Float64}}([NaN,1,epsilon,1])
-    R = -(1 - sqrt(epsilon)) / (1 + sqrt(epsilon))
-    r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 
@@ -81,11 +79,9 @@ println("Finished testing for CHEERLEADER")
     # No Tilt or surface roughness here.
     epsilon = 9
     eps = Array{Complex{Float64}}([NaN,1,epsilon,1])
-    R = -(1 - sqrt(epsilon)) / (1 + sqrt(epsilon))
-    r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 
@@ -125,19 +121,17 @@ println("Finished testing for DANCER")
     # No Tilt or surface roughness here.
     epsilon = 9
     eps = Array{Complex{Float64}}([NaN,1,epsilon,1])
-    R = -(1 - sqrt(epsilon)) / (1 + sqrt(epsilon))
-    r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
     # Initialize modes
     Mmax = 10
     Lmax = 0 # l-Modes are irrelevant for the azimuthally symmetric haloscope
     # For a 1D calculation:
-    #wvgmodes = SeedWaveguidemodes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    #modes = SeedModes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     # For 3D:
-    wvgmodes = SeedWaveguidemodes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    modes = SeedModes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     
 end
 
@@ -155,7 +149,7 @@ end
     #1D (if you calculate in 1D, use (vcat) above instead of (hcat) )
     #transformer(sbdry; prop=propagator1D,f=10e9,Xset=[1e-7],Yset=[1e-7])
     #3D    
-    transformer(sbdry,coords,wvgmodes; prop=propagator,f=10e9,diskR=diskR)
+    transformer(sbdry,coords,modes; prop=propagator,f=10e9,diskR=diskR)
 end;
 
 boost_factor_transformer = sum(abs2.(result_transformer), dims=1)[1,:];

@@ -58,7 +58,7 @@ Example for `cheerleader()`:
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 ```
@@ -67,7 +67,7 @@ end
 **This algorithm is the one from the previous version. `cheerleader` needs only half as much iterations.**
 
 `dancer` only calculates fields that leave the system to the right, and can only calculate reflectivities. Therefore, the mirror is not a region and not initialized as such.
-`dancer` needs to know the reflectivities between the regions and does not calculte them from the permittivities. This might be useful, if one wants to include an arbitrary surface loss which is independent of `epsilon`.
+`dancer` now calculates reflectivities from permittivities.
 
 Example for `dancer()`:
 ```julia
@@ -87,7 +87,7 @@ Example for `dancer()`:
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 ```
@@ -140,7 +140,7 @@ Normalization: For the boost factor the vector is normalized such that its absol
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
     # Initialize modes
     Mmax = 10
