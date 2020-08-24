@@ -55,7 +55,7 @@ function SeedModes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, disk
     id = Matrix{Float64}(I, (M*(2L+1),M*(2L+1))) # I: Identity matrix
     zeromatrix = zeros(M*(2L+1),M*(2L+1))
 
-    return modes(M,L,mode_patterns,mode_kt,id,zeromatrix)
+    return Modes(M,L,mode_patterns,mode_kt,id,zeromatrix)
 end
 
 """

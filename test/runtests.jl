@@ -10,16 +10,18 @@ using FFTW
 @testset "Package BoostFractor" begin
 
 @everywhere begin
+    PATH = ".."
+    #PATH = "BoostFractor.jl"
     # General Interface
-    include("../src/boost_fractor.jl")
+    include(PATH*"/src/boost_fractor.jl")
 
     # Differnt algorithms
-    include("../src/boost_fractor_recurprop.jl")
-    include("../src/boost_fractor_transformer.jl")
+    include(PATH*"/src/boost_fractor_recurprop.jl")
+    include(PATH*"/src/boost_fractor_transformer.jl")
 
     # Some convenient tools
-    include("../src/beam_gaussian.jl")
-    include("../src/beam_coupling.jl")
+    include(PATH*"/src/beam_gaussian.jl")
+    include(PATH*"/src/beam_coupling.jl")
 end
 
 ### Test CHEERLEADER ###
