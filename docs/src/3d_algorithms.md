@@ -58,7 +58,7 @@ Example for `cheerleader()`:
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 ```
@@ -67,7 +67,7 @@ end
 **This algorithm is the one from the previous version. `cheerleader` needs only half as much iterations.**
 
 `dancer` only calculates fields that leave the system to the right, and can only calculate reflectivities. Therefore, the mirror is not a region and not initialized as such.
-`dancer` needs to know the reflectivities between the regions and does not calculte them from the permittivities. This might be useful, if one wants to include an arbitrary surface loss which is independent of `epsilon`.
+`dancer` now calculates reflectivities from permittivities.
 
 Example for `dancer()`:
 ```julia
@@ -87,7 +87,7 @@ Example for `dancer()`:
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
 end
 ```
@@ -102,12 +102,12 @@ The X and Y grid should be set in such a way that the resolution is at least hal
 
 ## Transformer
 Apply transfer matrices to match modes between different regions.
-The transfer matrices for reflection/transmission are directly calculated using the permittivities. Therefore, there is no need to set the reflection coefficients anymore.
+The transfer matrices for reflection/transmission are directly calculated using the permittivities. Therefore, there is no need to set the reflection coefficients anymore. Note: epsilon = NaN in initialization to match behavior of cheerleader. However epsilon is still set in the code, so if you want to consider something other than a mirror, you can.
 
 Arguments:
 * `bdry`:           SetupBoundaries object, containing all relevant geometrical information (disk positions, epsilon, etc).
 * `coords`:         CoordinateSystem object containing X, Y coordinates in real and K space
-* `wvgmodes`:       Waveguidemodes object containing important information for modes
+* `modes`:       Modes object containing important information for modes
 * `f`:              Frequency in Hz
 * `prop`:           Propagator function to use. Standard is `propagator()`
 * `reflect`:        If nothing (standar value), the axion-induced signal is computed.
@@ -140,15 +140,15 @@ Normalization: For the boost factor the vector is normalized such that its absol
     r = Array{Complex{Float64}}([1.0, -R, R]);
     distance = [0.0, 0.15, 0.15/sqrt.(epsilon), 0.0]*1e-2
     
-    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, reflectivities=r, epsilon=eps)
+    sbdry = SeedSetupBoundaries(coords, diskno=1, distance=distance, epsilon=eps)
     
     # Initialize modes
     Mmax = 10
     Lmax = 0 # l-Modes are irrelevant for the azimuthally symmetric haloscope
     # For a 1D calculation:
-    #wvgmodes = SeedWaveguidemodes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    #modes = SeedModes(coords, ThreeDim=false, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     # For 3D:
-    wvgmodes = SeedWaveguidemodes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
+    modes = SeedModes(coords, ThreeDim=true, Mmax=Mmax, Lmax=Lmax, diskR=diskR)
     
 end
 ```
