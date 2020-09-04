@@ -43,7 +43,7 @@ function SeedWaveguidemodes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lma
         if pattern_input === nothing # If no specific pattern is put in, assume that E field is treated as scalar. Will change in some future version.
             mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),1))
         else
-            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),3))
+            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),size(pattern_input)[end]))
         end
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
         for m in 1:M, l in -L:L
