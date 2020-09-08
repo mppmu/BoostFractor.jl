@@ -3,9 +3,11 @@
 # Note: Travis doesn't seem to like getting no output for 10 mins.
 #       Re-added status updates for CHEERLEADER and DANCER for this reason.
 
-using Test
-using Distributed
-using FFTW
+@everywhere begin
+    using Test
+    using Distributed
+    using FFTW
+end
 
 @testset "Package BoostFractor" begin
 

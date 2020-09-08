@@ -129,15 +129,15 @@ function axion_induced_modes(coords::CoordinateSystem, modes::Modes;B=nothing, v
     B ./= sqrt.( sum(abs2.(B)) )
 
 
-    modes_intital = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1)))
+    modes_initial = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1)))
     for m in 1:modes.M, l in -modes.L:modes.L
         # (m-1)*(2modes.L+1)+l+modes.L+1 walks over all possible m,l combinations
-        modes_intital[(m-1)*(2modes.L+1)+l+modes.L+1] =
+        modes_initial[(m-1)*(2modes.L+1)+l+modes.L+1] =
                 sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:]) .* B )
     end
 
 
-    return modes_intitial
+    return modes_initial
 end
 
 """
@@ -258,7 +258,7 @@ end
 Pre-calculates all the propagation matrices.
 Useful, if they should be altered later (e.g. take out modes, add some additional mixing, etc.)
 """
-function calc_propagation_matrices(bdry::SetupBoundaries; f=10.0e9, prop=propagator, diskR=0.15)
+function calc_propagation_matrices(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, prop=propagator, diskR=0.15)
     Nregions = length(bdry.eps)
     lambda = wavelength(f)
     return [ propagation_matrix(bdry.distance[i], diskR, bdry.eps[i],
