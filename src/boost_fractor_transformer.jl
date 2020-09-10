@@ -133,7 +133,7 @@ function axion_induced_modes(coords::CoordinateSystem, modes::Modes;B=nothing, v
     for m in 1:modes.M, l in -modes.L:modes.L
         # (m-1)*(2modes.L+1)+l+modes.L+1 walks over all possible m,l combinations
         modes_initial[(m-1)*(2modes.L+1)+l+modes.L+1] =
-                sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:]) .* B )
+                sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:,:]) .* B )
     end
 
 
