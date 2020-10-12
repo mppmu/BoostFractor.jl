@@ -17,6 +17,11 @@ using SpecialFunctions, FunctionZeros
 
 # ---------------------- Initializations ------------------------------------------------
 
+"""
+    Gives out E-field dimensions in a more readable way. Output should be either 1 or 3.
+"""
+e_field_dimensions(modes) = size(modes.mode_patterns)[5]
+
 # Pre-calculate the mode patterns to speed up the matching calculations
 """
     Modes
@@ -105,10 +110,10 @@ Implements Knirck 6.17.
 function axion_induced_modes(coords::CoordinateSystem, modes::Modes;B=nothing, velocity_x=0, diskR=0.15,f=20e9)
 
     if B === nothing
-        if size(modes.mode_patterns)[5] == 1
-            B = ones(length(coords.X), length(coords.Y), size(modes.mode_patterns)[5])
-        elseif size(modes.mode_patterns)[5] == 3
-            B = zeros(length(coords.X), length(coords.Y), size(modes.mode_patterns)[5])
+        if e_field_dimensions(modes) == 1
+            B = ones(length(coords.X), length(coords.Y), e_field_dimensions(modes))
+        elseif e_field_dimensions(modes) == 3
+            B = zeros(length(coords.X), length(coords.Y), e_field_dimensions(modes))
             B[:,:,2] = ones(length(coords.X), length(coords.Y))
         end
     end
@@ -149,9 +154,9 @@ field2modes(pattern, coords::CoordinateSystem, modes::Modes;diskR=0.15) = axion_
 Get the field distribution E(x,y) for a given vector of mode coefficients
 """
 function modes2field(mode_coeffs, coords::CoordinateSystem, modes::Modes)
-    result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), size(modes.mode_patterns)[5]))
+    result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), e_field_dimensions(modes)))
     for m in 1:modes.M, l in -modes.L:modes.L
-            for i in 1:size(modes.mode_patterns)[5]
+            for i in 1:e_field_dimensions(modes)
                 result[:,:,i] .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:,i]
             end
     end
@@ -186,7 +191,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
     # Calculate the mixing matrix
     for m_prime in 1:modes.M, l_prime in -modes.L:modes.L
         # Propagated fields of mode (m_prime, l_prime)
-        for i in 1:size(modes.mode_patterns)[5]
+        for i in 1:e_field_dimensions(modes)
             # If 3D E-field, fields propagate separately. For interaction need to implement in propagator.
             propagated = propfunc(modes.mode_patterns[m_prime,l_prime+modes.L+1,:,:,i])
 
