@@ -28,7 +28,7 @@ e_field_dimensions(modes) = size(modes.mode_patterns)[5]
 
 Doc: TODO
 """
-struct Modes
+mutable struct Modes
     M::Int64
     L::Int64
     mode_patterns::Array{Complex{Float64}, 5}
@@ -156,9 +156,7 @@ Get the field distribution E(x,y) for a given vector of mode coefficients
 function modes2field(mode_coeffs, coords::CoordinateSystem, modes::Modes)
     result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), e_field_dimensions(modes)))
     for m in 1:modes.M, l in -modes.L:modes.L
-            for i in 1:e_field_dimensions(modes)
-                result[:,:,i] .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:,i]
-            end
+            result[:,:,:] .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:,:]
     end
     return result
 end
@@ -196,7 +194,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
             propagated = propfunc(modes.mode_patterns[m_prime,l_prime+modes.L+1,:,:,i])
 
             for m in (onlydiagonal ? [m_prime] : 1:modes.M), l in (onlydiagonal ? [l_prime] : -modes.L:modes.L)
-                # P_ml^m'l' = int dA E_ml* propagated(E_m'l')
+                # P_ml^m'l' = <E_ml | E^p_m'l' > = ∫ dA \bm{E}_ml^* ⋅ \bm{E}^p_m'l' = ∑_{j = x,y,z} ∫ dA ({E}_j)_ml^* ⋅ ({E}_j)^p_m'l'
                 # 6.15 in Knirck
                 matching_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m_prime-1)*(2modes.L+1)+l_prime+modes.L+1] +=
                         sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:,i]) .* propagated ) #*dx*dy
