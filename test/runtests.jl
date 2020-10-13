@@ -3,9 +3,12 @@
 # Note: Travis doesn't seem to like getting no output for 10 mins.
 #       Re-added status updates for CHEERLEADER and DANCER for this reason.
 
-using Test
 using Distributed
-using FFTW
+
+@everywhere begin
+    using Test
+    using FFTW
+end
 
 @testset "Package BoostFractor" begin
 
@@ -42,6 +45,7 @@ end
     
 end
 
+# Needs to be behind cheerleader init to define coords!
 gauss_shape = gauss_profile(coords; z = 1e-9, omega0 = 0.097, f = 22e9)
 @test gauss_shape[1] ≈ 8.343077704841396e-24 - 4.0474183340928325e-30im
 
