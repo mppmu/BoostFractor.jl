@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.com/mppmu/BoostFractor.jl.svg?token=WaxBMkB9ZxeQMN9rjG57&branch=master)](https://travis-ci.com/mppmu/BoostFractor.jl)
 
+[![codecov](https://codecov.io/gh/mppmu/BoostFractor.jl/branch/input_structure/graph/badge.svg?token=YF747EQJWX)](undefined)
+
 [MADMAX](https://madmax.mpp.mpg.de) axion-electrodynamics simulation in Julia. ([1D](docs/src/1d_model.md)  and [3D](docs/src/3d_algorithms.md))
 
 <!--## General Remarks
