@@ -108,41 +108,6 @@ end
 
 ## The heart of it #################################################################################
 
-#TODO: This function is no longer supported. reflectivity_transmissivity_1d does not exist; DiskDefinition has merged into SetuoBoundaries.
-@doc raw"""
-    initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
-
-OUTDATED! Does not work, do not use!
-Calculate reflection and transmission coefficients.
-
-# Arguments
-- `freq::Float64` ```> 0```: Frequency of EM radiation
-- `bdry::SetupBoundaries`: Properties of dielectric boundaries
-- `disk::DiskDefiniton`: Properties of dielectric discs
-"""
-function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, coords::CoordinateSystem)#, disk::DiskDefiniton)
-    if disk === nothing
-        # Iniatilize reflection coefficients according to epsilon
-        r_left = ones(length(bdry.eps))
-        r_left[1] = -1
-        for i in 2:length(bdry.eps)
-            # The reflectivity at this point
-            r_left = (sqrt(bdry.eps[i-1])-sqrt(bdry.eps[i]))/(sqrt(bdry.eps[i])+sqrt(bdry.eps[i-1]))
-        end
-        r_right = -r_left
-        t_left = 1. + r_left
-        t_right = 1 .+ r_right
-    else
-        # Initailize reflection coefficients according to disk model
-        ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
-        r_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*ref
-        r_right = r_left
-        t_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*trans
-        t_right = t_left
-    end
-    return r_left, r_right, t_left, t_right
-end
-
 ## Propagators ########################################################################################
 #TODO: propagator and propagator NoTilts are in-place, julia convention is name! instead of name
 """
@@ -255,3 +220,39 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coord
     return e1
 
 end
+
+
+#TODO: This function is no longer supported. reflectivity_transmissivity_1d does not exist; DiskDefinition has merged into SetuoBoundaries.
+@doc raw"""
+    initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
+
+OUTDATED! Does not work, do not use!
+Calculate reflection and transmission coefficients.
+
+# Arguments
+- `freq::Float64` ```> 0```: Frequency of EM radiation
+- `bdry::SetupBoundaries`: Properties of dielectric boundaries
+- `disk::DiskDefiniton`: Properties of dielectric discs
+"""
+# function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, coords::CoordinateSystem)#, disk::DiskDefiniton)
+#     if disk === nothing
+#         # Iniatilize reflection coefficients according to epsilon
+#         r_left = ones(length(bdry.eps))
+#         r_left[1] = -1
+#         for i in 2:length(bdry.eps)
+#             # The reflectivity at this point
+#             r_left = (sqrt(bdry.eps[i-1])-sqrt(bdry.eps[i]))/(sqrt(bdry.eps[i])+sqrt(bdry.eps[i-1]))
+#         end
+#         r_right = -r_left
+#         t_left = 1. + r_left
+#         t_right = 1 .+ r_right
+#     else
+#         # Initailize reflection coefficients according to disk model
+#         ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
+#         r_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*ref
+#         r_right = r_left
+#         t_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*trans
+#         t_right = t_left
+#     end
+#     return r_left, r_right, t_left, t_right
+# end
