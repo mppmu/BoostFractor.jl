@@ -121,7 +121,7 @@ function axion_induced_modes(coords::CoordinateSystem, modes::Modes;B=nothing, v
     # Inaccuracies of the emitted fields: BField and Velocity Effects ###################
     if velocity_x != 0
         B = Array{Complex{Float64}}(B)
-        lambda = lambda(f)
+        lambda = wavelength(f)
         Ma_PerMeter = 2pi/lambda # k = 2pi/lambda (c/f = lambda)
         B .*= [exp(-1im*Ma_PerMeter*(-velocity_x)*x) for x in coords.X, y in coords.Y]
     end
