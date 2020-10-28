@@ -14,7 +14,7 @@ end
 
 @everywhere begin
     PATH = ".."
-    #PATH = "BoostFractor.jl"
+    #PATH = "."#"BoostFractor.jl"
     # General Interface
     include(PATH*"/src/boost_fractor.jl")
 
@@ -45,9 +45,18 @@ end
     
 end
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# beam_gaussian.jl testing (100%)
+#
 # Needs to be behind cheerleader init to define coords!
 gauss_shape = gauss_profile(coords; z = 1e-9, omega0 = 0.097, f = 22e9)
-@test gauss_shape[1] ≈ 8.343077704841396e-24 - 4.0474183340928325e-30im
+@test gauss_shape[4000] ≈ 0.0954822450586725 - 4.408488908455253e-8im # relatively central element, 1 index skims through all elements of 2d array
+
+dx = 0.0001 * floor(10000. * (coords.X[2] - coords.X[1]))
+dy = 0.0001 * floor(10000. * (coords.Y[2] - coords.Y[1]))
+match = unnormalized_match(gauss_shape, 3 .* gauss_shape, dx=dx, dy=dy)
+@test match ≈ 0.04433886791643955 - 5.80356296618764e-26im
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Let us sweep over different disk phase depths for a disk at distance lambda/2 infront of the mirror
 # Of course the same way you can create a parallelized frequency sweep, etc.
