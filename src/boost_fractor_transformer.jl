@@ -252,8 +252,15 @@ Calculates one summand of the term (M[2,1]+M[1,1]) E_0 = sum{s=1...m} (T_s^m[2,1
 as in equation 4.14a
 """
 function axion_contrib(T,n1,n0, initial, modes::Modes)
-    axion_beam = (1. /n1^2 - 1. /n0^2)/2 .* (T[index(modes,2),index(modes,1)]*(copy(initial)) + T[index(modes,2),index(modes,2)]*(copy(initial)))
+    axion_beam = axion_S_factor(n1,n0) .* (T[index(modes,2),index(modes,1)]*(copy(initial)) + T[index(modes,2),index(modes,2)]*(copy(initial)))
     return axion_beam
+end
+
+"""
+    Prefactor in (4.7c)
+"""
+function axion_S_factor(n1,n0)
+    return (1. /n1^2 - 1. /n0^2)/2
 end
 
 """
@@ -353,9 +360,11 @@ amplitudes in each region.
 """
 function transformer_trace_back(refleced_beam, input_beam,
     bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes;
+    inlcudes_axion=false,
     f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15,
     emit=axion_induced_modes(coords,modes;B=ones(length(coords.X),length(coords.Y)),diskR=diskR))
-    # Note: So far this is only implemented for the reflectivity. Axion-contributions are neglected!
+
+    initial_bothside=permutedims(hcat(emit, emit), [2,1])
 
     #Definitions
     transmissionfunction_complete = [modes.id modes.zeromatrix ; modes.zeromatrix modes.id ]
@@ -384,9 +393,18 @@ function transformer_trace_back(refleced_beam, input_beam,
         # G_s P_s
         transmissionfunction_bdry = get_boundary_matrix(sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, modes)
 
-        # Apply the transmission function to the solution
-        # (R_s+1, L_s+1) = G_s P_s (R_s, L_s)
+        # Apply the transmission function to the solution (and add axion if desired)
+        # (R_s+1, L_s+1) = G_s P_s (R_s, L_s) + E_0 S_r (1 1) , essentially  (4.6) from theoretical foundations
+
+
         solution_current = transmissionfunction_bdry * solution_current
+
+        if inlcudes_axion
+            # TODO: Clarify why this sign is odd?
+            solution_current -= axion_S_factor(sqrt(bdry.eps[idx_reg(s+1)]),sqrt(bdry.eps[idx_reg(s)])) *
+                                    initial_bothside
+        end
+
 
         fields_regions[idx_reg(s+1),:,:] = copy(solution_current)
     end
