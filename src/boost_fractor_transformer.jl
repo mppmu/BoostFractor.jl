@@ -228,24 +228,23 @@ end
 # Comments refer to the formuli in the theoretical foundations paper (arXiv:1612.07057v2)
 # but generalized to 3D making L and R vectors.
 """
-Calculate Transfer matrix like in 4.9. 
+Calculate Transfer matrix like in 4.9.
 """
-function add_boundary(transm, n_left, n_right, diffprop, modes::Modes)
+function get_boundary_matrix(n_left, n_right, diffprop, modes::Modes; return_bdry_matrix=false)
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
     # The matrix encoding reflection and transmission (Knirck 6.18)
     G = (( (1. /(2*n_right)).*[(n_right+n_left)*modes.id (n_right-n_left)*modes.id ; (n_right-n_left)*modes.id (n_right+n_left)*modes.id] ))
 
+
     # The product, i.e. transfer matrix
-    transm *= G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
-  
+    return G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
+
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
     # This is convenient, because using this iteratively one arrives at exactly the T_n^m matrix from
     # the theoretical foundations paper
-
-    return transm
 end
 
 """
@@ -325,8 +324,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
                         propagation_matrices[idx_reg(s)])
 
         # T_s^m = T_{s+1}^m G_s P_s
-        transmissionfunction_complete = add_boundary(transmissionfunction_complete,
-                         sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, modes)
+        transmissionfunction_complete *= get_boundary_matrix(sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, modes)
     end
 
     # The rest of 4.14a
@@ -344,4 +342,54 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
     refl = transmissionfunction_complete[index(modes,2),index(modes,2)] \
            ((transmissionfunction_complete[index(modes,2),index(modes,1)]) * (reflect))
     return boost, refl
+end
+
+
+"""
+Traces back the field of a solution for the reflectivity in the system.
+Same arguments as transformer(), but first two arguments are the reflected beam
+solution and the input beam. Returns an array with the left- and rightgoing field
+amplitudes in each region.
+"""
+function transformer_trace_back(refleced_beam, input_beam,
+    bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes;
+    f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15,
+    emit=axion_induced_modes(coords,modes;B=ones(length(coords.X),length(coords.Y)),diskR=diskR))
+    # Note: So far this is only implemented for the reflectivity. Axion-contributions are neglected!
+
+    #Definitions
+    transmissionfunction_complete = [modes.id modes.zeromatrix ; modes.zeromatrix modes.id ]
+
+    c = 299792458.
+    lambda = c / f
+
+
+    Nregions = length(bdry.eps)
+    idx_reg(s) = Nregions-s+1
+
+    # The thing which we want to give back
+    fields_regions = Array{Complex{Float64}}(zeros(Nregions,2,(modes.M)*(2modes.L+1)))
+
+    #=
+        We start with the leftmost region where the solution is known and successively transform through the system:
+    =#
+    solution_current = permutedims(hcat(input_beam, refleced_beam), [2,1])
+    fields_regions[idx_reg(1),:,:] = copy(solution_current)
+    for s in 1:Nregions-1 # (Nregions-1):-1:1
+        # Propagation matrix (later become the subblocks of P)
+        diffprop = (propagation_matrices === nothing ?
+                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, modes; prop=prop) :
+                        propagation_matrices[idx_reg(s)])
+
+        # G_s P_s
+        transmissionfunction_bdry = get_boundary_matrix(sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, modes)
+
+        # Apply the transmission function to the solution
+        # (R_s+1, L_s+1) = G_s P_s (R_s, L_s)
+        solution_current = transmissionfunction_bdry * solution_current
+
+        fields_regions[idx_reg(s+1),:,:] = copy(solution_current)
+    end
+
+    return fields_regions
 end
