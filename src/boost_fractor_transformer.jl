@@ -230,7 +230,7 @@ end
 """
 Calculate Transfer matrix like in 4.9.
 """
-function get_boundary_matrix(n_left, n_right, diffprop, modes::Modes; return_bdry_matrix=false)
+function get_boundary_matrix(n_left, n_right, diffprop, modes::Modes)
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
