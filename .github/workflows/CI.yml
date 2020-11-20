@@ -5,10 +5,10 @@ name: CI
 on:
   pull_request:
     branches:
-      - actionsCI
+      - tests_rework
   push:
     branches:
-      - actionsCI
+      - tests_rework
     tags: '*'
 jobs:
   test:
