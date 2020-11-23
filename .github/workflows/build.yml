@@ -6,9 +6,11 @@ on:
   pull_request:
     branches:
       - tests_rework
+      - master
   push:
     branches:
       - tests_rework
+      - master
     tags: '*'
 jobs:
   test:
