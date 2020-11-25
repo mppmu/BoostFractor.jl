@@ -257,7 +257,7 @@ function axion_contrib(T,n1,n0, initial, modes::Modes)
 end
 
 """
-    Prefactor in (4.7c)
+    Prefactor in Theoretical Foundations (4.7c).
 """
 function axion_S_factor(n1,n0)
     return (1. /n1^2 - 1. /n0^2)/2
@@ -358,7 +358,7 @@ Same arguments as transformer(), but first two arguments are the reflected beam
 solution and the input beam. Returns an array with the left- and rightgoing field
 amplitudes in each region.
 """
-function transformer_trace_back(refleced_beam, input_beam,
+function transformer_trace_back(reflected_beam, input_beam,
     bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes;
     inlcudes_axion=false,
     f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15,
@@ -368,9 +368,7 @@ function transformer_trace_back(refleced_beam, input_beam,
 
     #Definitions
     transmissionfunction_complete = [modes.id modes.zeromatrix ; modes.zeromatrix modes.id ]
-
-    c = 299792458.
-    lambda = c / f
+    lambda = wavelength(f)
 
 
     Nregions = length(bdry.eps)
@@ -382,7 +380,7 @@ function transformer_trace_back(refleced_beam, input_beam,
     #=
         We start with the leftmost region where the solution is known and successively transform through the system:
     =#
-    solution_current = permutedims(hcat(input_beam, refleced_beam), [2,1])
+    solution_current = permutedims(hcat(input_beam, reflected_beam), [2,1])
     fields_regions[idx_reg(1),:,:] = copy(solution_current)
     for s in 1:Nregions-1 # (Nregions-1):-1:1
         # Propagation matrix (later become the subblocks of P)
