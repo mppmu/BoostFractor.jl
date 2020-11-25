@@ -230,7 +230,7 @@ end
 """
 Calculate Transfer matrix like in 4.9.
 """
-function get_boundary_matrix(n_left, n_right, diffprop, modes::Modes)
+function get_boundary_matrix(n_left, n_right, diffprop::Array{Complex{T}}, modes::Modes) where T<:Real
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
@@ -239,7 +239,7 @@ function get_boundary_matrix(n_left, n_right, diffprop, modes::Modes)
 
 
     # The product, i.e. transfer matrix
-    return G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
+    return G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{T}}(diffprop))]
 
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
