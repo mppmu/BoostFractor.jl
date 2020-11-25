@@ -95,7 +95,7 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
         append!(epsilon, 1.0)
     end
 
-    reflectivities = [1.0]
+    reflectivities = complex([1.0])
     R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
     append!(reflectivities, R)
 
