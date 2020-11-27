@@ -70,7 +70,7 @@ function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=
 
     lambda = wavelength(f)
 
-    #generate propagator arrays
+    #generate phase shift arrays
     phase = init_prop(bdry, coords, lambda, diskR, output_surfaces = [length(bdry.distance)])
 
     n = 0   # Iteration Count
@@ -133,7 +133,7 @@ function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=
         n += 1
     end
 
-	Eout .*= phase.surface_out[:,:,1]
+	Eout .*= phase.surface_out[:,:,1] #surface misalignments for the last boundary outside the disk
 
     # Dance Outro
     # The summation at the end is to give the opportunity to intelligently sum

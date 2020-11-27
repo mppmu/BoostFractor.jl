@@ -202,7 +202,6 @@ function propagation_matrix(index_disk, dz, lambda, eps, coords::CoordinateSyste
                 # P_ml^m'l' = <E_ml | E^p_m'l' > = ∫ dA \bm{E}_ml^* ⋅ \bm{E}^p_m'l' = ∑_{j = x,y,z} ∫ dA ({E}_j)_ml^* ⋅ ({E}_j)^p_m'l'
                 # 6.15 in Knirck
                 matching_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m_prime-1)*(2modes.L+1)+l_prime+modes.L+1] +=
-                        #sum( conj.(view(modes.mode_patterns,phase.x_sub,phase.y_sub,i,m, l+modes.L+1)) .* view(propagated,phase.x_sub,phase.y_sub) ) #*dx*dy
                         sum( conj.(modes.mode_patterns[phase.x_sub,phase.y_sub,i,m, l+modes.L+1]) .* propagated[phase.x_sub,phase.y_sub] ) #*dx*dy
 
                 #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
@@ -236,7 +235,7 @@ end
 """
 Calculate Transfer matrix like in 4.9.
 """
-function add_boundary(transm, n_left, n_right, diffprop, modes::Modes)
+function add_boundary(transm, n_left, n_right, diffprop::Array{Complex{T}}, modes::Modes) where T<:Real
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
@@ -244,7 +243,7 @@ function add_boundary(transm, n_left, n_right, diffprop, modes::Modes)
     G = (( (1. /(2*n_right)).*[(n_right+n_left)*modes.id (n_right-n_left)*modes.id ; (n_right-n_left)*modes.id (n_right+n_left)*modes.id] ))
 
     # The product, i.e. transfer matrix
-    transm *= G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
+    transm *= G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{T}}(diffprop))]
 
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
@@ -278,7 +277,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices::Array{Array{Complex{T},2},1}=Array{Complex{Float64},2}[], diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing) where T<:Real
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
     # To have same SetupBoundaries object for all codes and cheerleader assumes NaN, just define a high constant

@@ -68,7 +68,7 @@ mutable struct SetupBoundaries
     eps::Array{Complex{Float64},1}   # = [1,9,1]
     relative_tilt_x # = [0,0]
     relative_tilt_y # = [0,0]
-    relative_surfaces::Array{Complex{Float64},3} # = [x, y, z]
+    relative_surfaces::Array{Complex{Float64},3} # = [z, x, y]
     # etc.
 end
 
@@ -158,7 +158,7 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
         append!(epsilon, 1.0)
     end
 
-    reflectivities = [1.0]
+    reflectivities = complex([1.0])
     R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
     append!(reflectivities, R)
 
@@ -201,7 +201,7 @@ function propagator(E0, i, coords::CoordinateSystem, prop::Phase_shifts, plan, i
     E0 = propagatorNoTilts(E0, i, coords, prop, plan, i_plan)
 
     # More general: Any surface misalignments:
-    view(E0, prop.x_sub, prop.y_sub) .*= prop.surface[:,:,i] #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
+    E0[prop.x_sub, prop.y_sub] .*= prop.surface[:,:,i] #only applied on a subarry enclosing the disk area
     return E0
 end
 
