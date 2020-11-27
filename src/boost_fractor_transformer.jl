@@ -47,18 +47,20 @@ function SeedModes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, disk
     if ThreeDim
         M, L = Mmax,Lmax
         if pattern_input === nothing # If no specific pattern is put in, assume that E field is treated as scalar. Will change in some future version.
-            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),1))
+            mode_patterns = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), 1, M, 2*L+1))
         else
-            mode_patterns = Array{Complex{Float64}}(zeros(M,2*L+1, length(coords.X), length(coords.Y),size(pattern_input)[end]))
+            mode_patterns = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), size(pattern_input)[end], M, 2*L+1))
         end
+
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
+
         for m in 1:M, l in -L:L
-            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:,:] = mode(m,l,L,coords;diskR=diskR,pattern_input=pattern_input)
+            mode_kt[m,l+L+1], mode_patterns[:,:,:,m, l+L+1] = mode(m,l,L,coords;diskR=diskR,pattern_input=pattern_input)
         end
     else
         M = 1
         L = 0
-        mode_patterns = Array{Complex{Float64}}(ones(M,2*L+1, length(coords.X), length(coords.Y),1))
+        mode_patterns = Array{Complex{Float64}}(ones(length(coords.X), length(coords.Y), 1, M, 2*L+1))
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
     end
 
@@ -96,7 +98,7 @@ function mode(m,l,L, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03,pattern_i
         pattern ./= sqrt(sum(abs2.(pattern))) #*dx*dy)
         pattern = reshape(pattern, (size(pattern)...,1)) # Expand dims without putting additional values in
     else
-        pattern = pattern_input[m,l+L+1,:,:,:]
+        pattern = pattern_input[:,:,:,m,l+L+1]
     end
     return ktransversal, pattern
 end
@@ -138,7 +140,7 @@ function axion_induced_modes(coords::CoordinateSystem, modes::Modes;B=nothing, v
     for m in 1:modes.M, l in -modes.L:modes.L
         # (m-1)*(2modes.L+1)+l+modes.L+1 walks over all possible m,l combinations
         modes_initial[(m-1)*(2modes.L+1)+l+modes.L+1] =
-                sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:,:]) .* B )
+                sum( conj.(modes.mode_patterns[:,:,:,m, l+modes.L+1]) .* B )
     end
 
 
@@ -156,7 +158,7 @@ Get the field distribution E(x,y) for a given vector of mode coefficients
 function modes2field(mode_coeffs, coords::CoordinateSystem, modes::Modes)
     result = Array{Complex{Float64}}(zeros(length(coords.X), length(coords.Y), e_field_dimensions(modes)))
     for m in 1:modes.M, l in -modes.L:modes.L
-            result[:,:,:] .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[m,l+modes.L+1,:,:,:]
+            result[:,:,:] .+= mode_coeffs[(m-1)*(2modes.L+1)+l+modes.L+1].*modes.mode_patterns[:,:,:,m, l+modes.L+1]
     end
     return result
 end
@@ -166,23 +168,26 @@ end
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
 """
 """
-function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, modes::Modes; is_air=(eps==1), onlydiagonal=false, prop=propagator)
+function propagation_matrix(index_disk, dz, lambda, eps, coords::CoordinateSystem, phase::Phase_shifts, modes::Modes, plan, i_plan; is_air=(eps==1), onlydiagonal=false, prop=propagator)
     matching_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
-
-    k0 = 2pi/lambda*sqrt(eps)
 
     # Define the propagation function
     propfunc = nothing # initialize
     if is_air
         # In air use the propagator we get
-        function propagate(x)
-            return prop(copy(x), dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
+        function propagate(i, m, l)
+            return prop(modes.mode_patterns[:,:,i,m,l], index_disk, coords, phase, plan, i_plan)
         end
         propfunc = propagate
     else
         # In the disk the modes are eigenmodes, so we only have to apply the
         # inaccuracies and can apply the propagation later separately
-        propfunc(efields) = efields.*[exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y].*exp.(-1im*k0*surface)
+        function propfunc(i, m, l)
+            E0 = copy(modes.mode_patterns[:,:,i,m,l])
+            #view(E0,phase.x_sub,phase.y_sub) .*= phase.surface[:,:,index_disk]
+            E0[phase.x_sub,phase.y_sub] .*= phase.surface[:,:,index_disk]
+            return E0
+        end
         # Applying exp element-wise to the surface is very important otherwise it is e^M with M matrix
     end
 
@@ -191,13 +196,14 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         # Propagated fields of mode (m_prime, l_prime)
         for i in 1:e_field_dimensions(modes)
             # If 3D E-field, fields propagate separately. For interaction need to implement in propagator.
-            propagated = propfunc(modes.mode_patterns[m_prime,l_prime+modes.L+1,:,:,i])
+            propagated = propfunc(i, m_prime, l_prime+modes.L+1)
 
             for m in (onlydiagonal ? [m_prime] : 1:modes.M), l in (onlydiagonal ? [l_prime] : -modes.L:modes.L)
                 # P_ml^m'l' = <E_ml | E^p_m'l' > = ∫ dA \bm{E}_ml^* ⋅ \bm{E}^p_m'l' = ∑_{j = x,y,z} ∫ dA ({E}_j)_ml^* ⋅ ({E}_j)^p_m'l'
                 # 6.15 in Knirck
                 matching_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m_prime-1)*(2modes.L+1)+l_prime+modes.L+1] +=
-                        sum( conj.(modes.mode_patterns[m,l+modes.L+1,:,:,i]) .* propagated ) #*dx*dy
+                        #sum( conj.(view(modes.mode_patterns,phase.x_sub,phase.y_sub,i,m, l+modes.L+1)) .* view(propagated,phase.x_sub,phase.y_sub) ) #*dx*dy
+                        sum( conj.(modes.mode_patterns[phase.x_sub,phase.y_sub,i,m, l+modes.L+1]) .* propagated[phase.x_sub,phase.y_sub] ) #*dx*dy
 
                 #v = 1-abs2.(matching_matrix[(m-1)*(2L+1)+l+L+1, (m_prime-1)*(2L+1)+l_prime+L+1])
             end
@@ -208,7 +214,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         propagation_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
         #The propagation within the disk is still missing
         for m in 1:modes.M, l in -modes.L:modes.L
-            kz = sqrt(k0^2 - modes.mode_kt[m,l+modes.L+1])
+            kz = sqrt(phase.k0[index_disk]^2 - modes.mode_kt[m,l+modes.L+1])
             propagation_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m-1)*(2modes.L+1)+l+modes.L+1] = exp(-1im*kz*dz)
         end
         # It is important to note the multiplication from the left
@@ -228,9 +234,9 @@ end
 # Comments refer to the formuli in the theoretical foundations paper (arXiv:1612.07057v2)
 # but generalized to 3D making L and R vectors.
 """
-Calculate Transfer matrix like in 4.9. 
+Calculate Transfer matrix like in 4.9.
 """
-function add_boundary(transm, n_left, n_right, diffprop::Array{Complex{T}}, modes::Modes) where T<:Real
+function add_boundary(transm, n_left, n_right, diffprop, modes::Modes)
     # We calculate G_r P_r analogous to eqs. 4.7
     # where n_right = n_{r+1}, n_left = n_r
 
@@ -238,8 +244,8 @@ function add_boundary(transm, n_left, n_right, diffprop::Array{Complex{T}}, mode
     G = (( (1. /(2*n_right)).*[(n_right+n_left)*modes.id (n_right-n_left)*modes.id ; (n_right-n_left)*modes.id (n_right+n_left)*modes.id] ))
 
     # The product, i.e. transfer matrix
-    transm *= G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{T}}(diffprop))]
-  
+    transm *= G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{Float64}}(diffprop))]
+
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
     # This is convenient, because using this iteratively one arrives at exactly the T_n^m matrix from
@@ -272,7 +278,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices::Array{Array{Complex{T},2},1}=Array{Complex{Float64},2}[], diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing) where T<:Real
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing)
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
     # To have same SetupBoundaries object for all codes and cheerleader assumes NaN, just define a high constant
@@ -284,10 +290,13 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
 
     initial = emit
     #println(initial)
-
-    axion_beam = Array{Complex{T}}(zeros((modes.M)*(2modes.L+1)))
-
+    axion_beam = Array{Complex{Float64}}(zeros((modes.M)*(2modes.L+1)))
     #println(axion_beam)
+
+    #initialize the arrays with the propagator phases
+	phase = init_prop(bdry, coords, lambda, diskR)
+    plan = plan_fft!(Array{ComplexF64, 2}(undef, length(coords.X), length(coords.Y)), flags=FFTW.ESTIMATE)
+    i_plan = plan_ifft!(Array{ComplexF64, 2}(undef, length(coords.X), length(coords.Y)), flags=FFTW.ESTIMATE)
 
     #=
         To have the different algorithms consistent with each other,
@@ -322,8 +331,8 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
         # calculate T_s^m ---------------------------
 
         # Propagation matrix (later become the subblocks of P)
-        diffprop = (isempty(propagation_matrices) ?
-                        propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, modes; prop=prop) :
+        diffprop = (propagation_matrices === nothing ?
+                        propagation_matrix(idx_reg(s), bdry.distance[idx_reg(s)], lambda, bdry.eps[idx_reg(s)], coords, phase, modes, plan, i_plan; prop=prop) :
                         propagation_matrices[idx_reg(s)])
 
         # T_s^m = T_{s+1}^m G_s P_s
