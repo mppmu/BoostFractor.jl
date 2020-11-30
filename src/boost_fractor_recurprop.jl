@@ -15,14 +15,14 @@ Propagates the fields through the system
 * `nmax`:           Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
 * `bdry`:           SetupBoundaries-Objekt, containing all relevant geometrical information (disk positions, epsilon, etc)
 * `f`:              Frequency
-* `prop`:           Propagator Function to use. Standard is propagator()
+* `prop!`:           Propagator Function to use. Standard is propagator()
 * `reflect`:        If nothing (standar value), the axion-induced signal is computed.
                     If set, this field defines a beam, for which the reflected beam will be calculated
 * `Xset`, `Yset`:   Explicitly set the coordinate system for the fields
 * `returnsum`:      If false, the out-propagating contributions after each iteration will be returned, without summing.
 * `immediatesum`:   If false, the out-propagating contributions will be saved and summed up at the end.
 """
-function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnsum=true, immediatesum=true)
+function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop! =propagator!, emit=nothing, reflect=nothing, diskR=0.1, returnsum=true, immediatesum=true)
 
     # Make dancer swallow the same SetupBoundaries object as cheerleader and transformer
     bdry = deepcopy(sbdry)
@@ -71,7 +71,7 @@ function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=
     lambda = wavelength(f)
 
     #generate phase shift arrays
-    phase = init_prop(bdry, coords, lambda, diskR, output_surfaces = [length(bdry.distance)])
+    phase = SeedPhaseShifts(bdry, coords, lambda, diskR, output_surfaces = [length(bdry.distance)])
 
     n = 0   # Iteration Count
     a = 1.0 # Maximum Field Amplitude in the iteration
@@ -97,8 +97,8 @@ function dancer(amin, nmax, sbdry::SetupBoundaries, coords::CoordinateSystem; f=
 """
 
 		for i in 1:1:length(bdry.distance)
-			prop(view(fields, :, :, i, rightmoving), i, coords, phase, plan, i_plan)
-			prop(view(fields, :, :, i, leftmoving ), i, coords, phase, plan, i_plan)
+			prop!(view(fields, :, :, i, rightmoving), i, coords, phase, plan, i_plan)
+			prop!(view(fields, :, :, i, leftmoving ), i, coords, phase, plan, i_plan)
 		end
 
 		if immediatesum
@@ -204,7 +204,7 @@ function dance_intro(bdry::SetupBoundaries, coords::CoordinateSystem; bfield=not
 end
 
 """
-    cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
+    cheerleader(amin, nmax, bdry::SetupBoundaries; f=10.0e9, prop!=propagator, emit=nothing, reflect=nothing, Xset=X, Yset=Y, diskR=0.1, returnboth=false)
 
 New Recursive Fourier Propagation implementation.
 
@@ -213,7 +213,7 @@ New Recursive Fourier Propagation implementation.
 - `nmax`: Maximum number of beam iteration steps, directly equivalent to how many boundaries a beam 'sees' at most
 - `bdry::SetupBoundaries`: Properties of dielectric boundaries
 - `f::Float64` ```> 0```: Frequency of EM radiation
-- `prop`: Propagator Function to use. Standard is propagator().
+- `prop!`: Propagator Function to use. Standard is propagator().
 - `emit`:  Explicitly set the axion-induced fields emitted from each boundary (to the left and to the right).
                If ``nothing`` fields are initialized according to uniform,
                homogeneous external B-field with zero axion velocity.
@@ -226,7 +226,7 @@ New Recursive Fourier Propagation implementation.
 
 See [`dancer`](@ref) for old version.
 """
-function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop=propagator, emit=nothing, reflect=nothing, diskR=0.1, returnboth=false)
+function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem; f=10.0e9, prop! =propagator!, emit=nothing, reflect=nothing, diskR=0.1, returnboth=false)
 
     # Before speed of light was 3e8 here, but this means an error at the permil level, i.e. order ~20MHz at 20GHz,
     # if fixing lambda to 1.5 cm, one gets a shift of roughly 10MHz
@@ -247,7 +247,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
     transmissivities_rightmoving = 1 .+ bdry.r
 
 	#initialize the arrays with the propagator phases
-	phase = init_prop(bdry, coords, lambda, diskR, output_surfaces = [1, length(bdry.distance)])
+	phase = SeedPhaseShifts(bdry, coords, lambda, diskR, output_surfaces = [1, length(bdry.distance)])
 
 	#create fft plans for single-slice transforms
 	plan = plan_fft!(fields[:,:,1])
@@ -290,7 +290,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
     # Push forward the fields rightmoving...
     for i in 2:1:length(bdry.distance)-1
         # Propagate to the right
-        prop(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
+        prop!(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
         # Reflect and Transmit
         fields[:,:,i+1] .+= transmissivities_rightmoving[i].*fields[:,:,i]
         fields[:,:,i]   .*= reflectivities_rightmoving[i]
@@ -321,7 +321,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
             # Do NOT Propagate to the fields in the current gap to the right
             # Region 1 always contains left-moving fields.
             # Propagate to the fields in the next gap to the left
-            prop(view(fields,:,:,i+1), i+1, coords, phase, plan, inverse_plan)
+            prop!(view(fields,:,:,i+1), i+1, coords, phase, plan, inverse_plan)
             # Reflect and Transmit
             # No backup copy needed since nothing is coming from the i = 1 region
             # Transmit
@@ -333,9 +333,9 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
         # Push forward...
         for i in 2:1:length(bdry.distance)-2
             # Propagate to the fields in the current gap to the right
-            prop(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
+            prop!(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
             # Propagate to the fields in the next gap to the left
-            prop(view(fields,:,:,i+1), i+1, coords, phase, plan, inverse_plan)
+            prop!(view(fields,:,:,i+1), i+1, coords, phase, plan, inverse_plan)
             # Reflect and Transmit
             fields_next_gap_copy = copy(fields[:,:,i+1])
             fields[:,:,i+1] .*= reflectivities_leftmoving[i]
@@ -346,7 +346,7 @@ function cheerleader(amin, nmax, bdry::SetupBoundaries, coords::CoordinateSystem
 
         let i = length(bdry.distance)-1
             # Propagate to the fields in the current gap to the right
-            prop(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
+            prop!(view(fields,:,:,i), i, coords, phase, plan, inverse_plan)
             # DO NOT Propagate to the fields in the next gap to the left
             # Since it only contains fields propagating to the right
             # Reflect and Transmit

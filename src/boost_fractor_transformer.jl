@@ -168,7 +168,7 @@ end
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
 """
 """
-function propagation_matrix(index_disk, dz, lambda, eps, coords::CoordinateSystem, phase::Phase_shifts, modes::Modes, plan, i_plan; is_air=(eps==1), onlydiagonal=false, prop=propagator)
+function propagation_matrix(index_disk, dz, lambda, eps, coords::CoordinateSystem, phase::PhaseShifts, modes::Modes, plan, i_plan; is_air=(eps==1), onlydiagonal=false, prop! =propagator!)
     matching_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
 
     # Define the propagation function
@@ -176,7 +176,7 @@ function propagation_matrix(index_disk, dz, lambda, eps, coords::CoordinateSyste
     if is_air
         # In air use the propagator we get
         function propagate(i, m, l)
-            return prop(modes.mode_patterns[:,:,i,m,l], index_disk, coords, phase, plan, i_plan)
+            return prop!(modes.mode_patterns[:,:,i,m,l], index_disk, coords, phase, plan, i_plan)
         end
         propfunc = propagate
     else
@@ -277,7 +277,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices::Array{Array{Complex{T},2},1}=Array{Complex{Float64},2}[], diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing) where T<:Real
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop! =propagator!, propagation_matrices::Array{Array{Complex{T},2},1}=Array{Complex{Float64},2}[], diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing) where T<:Real
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
     # To have same SetupBoundaries object for all codes and cheerleader assumes NaN, just define a high constant
@@ -289,11 +289,11 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
 
     initial = emit
     #println(initial)
-    axion_beam = Array{Complex{Float64}}(zeros((modes.M)*(2modes.L+1)))
+    axion_beam = Array{Complex{T}}(zeros((modes.M)*(2modes.L+1)))
     #println(axion_beam)
 
     #initialize the arrays with the propagator phases
-	phase = init_prop(bdry, coords, lambda, diskR)
+	phase = SeedPhaseShifts(bdry, coords, lambda, diskR)
     plan = plan_fft!(Array{ComplexF64, 2}(undef, length(coords.X), length(coords.Y)), flags=FFTW.ESTIMATE)
     i_plan = plan_ifft!(Array{ComplexF64, 2}(undef, length(coords.X), length(coords.Y)), flags=FFTW.ESTIMATE)
 
@@ -330,8 +330,8 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
         # calculate T_s^m ---------------------------
 
         # Propagation matrix (later become the subblocks of P)
-        diffprop = (propagation_matrices === nothing ?
-                        propagation_matrix(idx_reg(s), bdry.distance[idx_reg(s)], lambda, bdry.eps[idx_reg(s)], coords, phase, modes, plan, i_plan; prop=prop) :
+        diffprop = (isempty(propagation_matrices) ?
+                        propagation_matrix(idx_reg(s), bdry.distance[idx_reg(s)], lambda, bdry.eps[idx_reg(s)], coords, phase, modes, plan, i_plan; prop! =prop!) :
                         propagation_matrices[idx_reg(s)])
 
         # T_s^m = T_{s+1}^m G_s P_s
