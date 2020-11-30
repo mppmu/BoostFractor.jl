@@ -11,6 +11,7 @@ on:
     branches:
       - tests_rework
       - master
+      - speedup
     tags: '*'
 jobs:
   test:
