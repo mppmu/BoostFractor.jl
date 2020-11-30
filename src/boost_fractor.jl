@@ -11,7 +11,9 @@
 #
 
 
-export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D, CoordinateSystem, SeedCoordinateSystem, wavelength
+export SetupBoundaries, SeedSetupBoundaries, propagator, propagator1D, propagatorNoTilts, CoordinateSystem, SeedCoordinateSystem, wavelength, propagators, init_prop
+
+
 
 function wavelength(frequency::Float64)
     speed_of_light = 299792458. # [m]
@@ -28,8 +30,8 @@ struct CoordinateSystem
 end
 
 function SeedCoordinateSystem(;X = -0.5:0.01:0.5, Y = -0.5:0.01:0.5) # units [m]
-    kX = get_kspace_coords(X)
-    kY = get_kspace_coords(Y)
+    kX = ifftshift(get_kspace_coords(X))
+    kY = ifftshift(get_kspace_coords(Y)) #transform k-space coordinates to fft-ordering
     return CoordinateSystem(X, Y, kX, kY)
 end
 
@@ -66,7 +68,7 @@ mutable struct SetupBoundaries
     eps::Array{Complex{Float64},1}   # = [1,9,1]
     relative_tilt_x # = [0,0]
     relative_tilt_y # = [0,0]
-    relative_surfaces::Array{Complex{Float64},3} # = [z, x,y ]
+    relative_surfaces::Array{Complex{Float64},3} # = [z, x, y]
     # etc.
 end
 
@@ -105,13 +107,69 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
     return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
+struct PhaseShifts
+    #pre-calculate k0 for each boundary.
+    k0::Array{ComplexF64, 1}
+
+    k_prop::Array{ComplexF64, 3}
+    #combine surface misalignments and tilts into one array of phase-shifts
+    surface::Array{ComplexF64, 3}
+    #surface misalignments can usually be applied for only the area within the diskradius
+    #for dancer and cheerleader: need to account for the first/last boundaries.
+    #single 2D slice for dancer, two for cheerleader, unused for transformer
+    surface_out::Array{ComplexF64,3}
+    #two more values that are needed
+    diskR::Float64
+    dz::Array{Float64,1}
+    #convenient arrays for slicing to get the subarray enclosing the disk area
+    x_sub::Array{Int64, 1}
+    y_sub::Array{Int64, 1}
+end
+
+#calcualte the phase shifts for every boundary
+function SeedPhaseShifts(bdry::SetupBoundaries, coords::CoordinateSystem, lambda, radius; output_surfaces = [])
+    k0 = 2 * pi * sqrt.(bdry.eps) / lambda
+
+    k_prop = [exp(-1im * bdry.distance[z] * conj(sqrt( ComplexF64(k0[z]^2 - kx^2 - ky^2)))) for kx in coords.kX, ky in coords.kY, z in 1:length(bdry.distance)]
+
+    #In most cases the field outside the disk is cut off right after applying surface misalignments,
+    #because of this it is more efficient to apply surface misalignments only for the subarry containing the disk
+    x_sub = coords.X[abs.(coords.X) .<= radius] #X / Y coordinates for the subarray
+    y_sub = coords.Y[abs.(coords.Y) .<= radius]
+
+    x_sub_min = (length(coords.X) - length(x_sub)) ÷ 2 + 1 #maximum and minimum indices of the subarry
+    x_sub_max = x_sub_min + length(x_sub) - 1
+
+    y_sub_min = (length(coords.Y) - length(y_sub)) ÷ 2 + 1
+    y_sub_max = y_sub_min + length(y_sub) - 1
+
+    x_sub_index = x_sub_min:1:x_sub_max # for slicing, field[x_sub_index, y_sub_index] will return the field
+    y_sub_index = y_sub_min:1:y_sub_max # in the square subarray exactly enclosing the disk-area
+
+    t_x = [exp(-1im * k0[z] * bdry.relative_tilt_x[z] * x) for x in x_sub, z in 1:length(k0)]
+    t_y = [exp(-1im * k0[z] * bdry.relative_tilt_y[z] * y) for y in y_sub, z in 1:length(k0)]
+    surface_phase = [exp(-1im * k0[z] * bdry.relative_surfaces[z, x, y]) for x in x_sub_index, y in y_sub_index, z in 1:length(k0)]
+    surface_phase = [t_x[x,z] * t_y[y,z] * surface_phase[x,y,z] for x in 1:length(x_sub), y in 1:length(y_sub), z in 1:length(k0)]
+
+    #for dancer and cheerleader we need the surface misalignments outside the disk area for the rightmost/leftmost boundaries
+    surface_phase_out = Array{ComplexF64, 3}(undef, length(coords.X), length(coords.Y), length(output_surfaces))
+    for i in 1:length(output_surfaces)
+        z = output_surfaces[i]
+        t_x = [exp(-1im * k0[z] * bdry.relative_tilt_x[z] * x) for x in coords.X]
+        t_y = [exp(-1im * k0[z] * bdry.relative_tilt_y[z] * y) for y in coords.Y]
+        surface_phase_out[:,:,i] = [exp(-1im * k0[z] * bdry.relative_surfaces[z, x, y]) * t_x[x] * t_y[y] for x in 1:length(coords.X), y in 1:length(coords.Y)]
+        surface_phase_out[x_sub_index, y_sub_index, i] .= 1+0im # for the sub array the misalignments were already applied
+    end
+    return PhaseShifts(k0, k_prop, surface_phase, surface_phase_out, radius, bdry.distance, x_sub_index, y_sub_index)#, surface_prop, surface_out_prop, radius)
+end
+
 
 ## The heart of it #################################################################################
 
 ## Propagators ########################################################################################
 #TODO: propagator and propagator NoTilts are in-place, julia convention is name! instead of name
 """
-    propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+    propagator!(E0, i, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
 
 Do the FFT of E0 on a disk, propagate the beam a given distance and do the iFFT.
 Note that this method is in-place. If it should be called more than one time on the
@@ -122,24 +180,21 @@ with k0 to the tilted surface (only valid if diffraction effects are small).
 
 # Arguments
 - `E0::Array{Float64,2}`: Electric field before propagation
-- `dz`: Distance propagated in z direction
-- `diskR`: Radius of discs
-- `eps`: Dielectric permittivity
-- `tilt_x`: Disc tilt in x direction
-- `tilt_y`: Disc tilt in y direction
-- `surface`: Surface roughness of disc (only at end of propagation)
-- `lambda`: Wavelength of electric field
+- `index_z`: Index of the bondary along the z direction
+- `coords`: Coordinate System
+- `phase`: pre-calculated phase shifts for real and K space
+- `plan`: 2d single in-place fft plan
+- `i_plan`: 2d single in-place ifft plan
 
 See also: [`propagatorMomentumSpace`](@ref)
 """
-function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
-    k0 = 2*pi/lambda*sqrt(eps)
+function propagator!(E0, index_z, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
+
     # Call the propagator and add a phase imposed by the tilt
-    E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
-    # Tilts:
-    E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y]
+    E0 = propagatorNoTilts!(E0, index_z, coords, phase, plan, i_plan)
+
     # More general: Any surface misalignments:
-    E0 .*= exp.(-1im*k0*surface) #(the element wise (exp.) is important, otherwise "surface" is treated as a matrix!)
+    E0[phase.x_sub, phase.y_sub] .*= phase.surface[:,:,index_z] #only applied on a subarry enclosing the disk area
     return E0
 end
 
@@ -149,56 +204,51 @@ end
 Wrapped by [`propagator`](@ref). Go there for documentation. Tilt arguments to be
 compatible with other propagators.
 """
-function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
+function propagatorNoTilts!(E0, index_z, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
     # Diffract at the Disk. Only the disk is diffracting.
-    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in coords.X, y in coords.Y]
+    E0 .*= [abs(x^2 + y^2) < phase.diskR^2 for x in coords.X, y in coords.Y]
     # FFT the E-Field to spatial frequencies
     # fft! and ifft! in the current release (1.2.2) only work with type ComplexF32 and ComplexF64
     # fft and ifft seem more stable
-    FFTW.fft!(E0)
-    E0 = FFTW.fftshift(E0)
+
+    plan * E0
 
     # TODO: If maximum k is higher than k0, then it is not defined
     #       what happens with this mode
     #       We should give a warning and handle this here
     #       At the moment the script will just also propagate with a loss for those components
     # Propagate through space
-    k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
-    E0 = E0 .* exp.(-1im*k_prop*dz)
+
+    #k = [conj(sqrt( ComplexF64(phase.k0[i]^2 - kx^2 - ky^2))) for kx in coords.kX, ky in coords.kY]
+    #E0 .*= exp.(-1im * phase.dz[i] * k)
+    E0 .*= phase.k_prop[:,:,index_z]
     # Backtransform
-    E0 = FFTW.ifftshift(E0)
-    FFTW.ifft!(E0)
+    i_plan * E0
+
     return E0
 end
 
 """
-    propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda)
+    propagatorMomentumSpace(E0, i, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
 
 Propagator that assumes E0 is already in momentum space. Mix between [`propagator`](@ref)
 and [`propagatorNoTilts`](@ref). Go to [`propagator`](@ref) for documentation.
 """
-function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
+function propagatorMomentumSpace!(E0, index_z, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
     # Propagate through space
-    k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
-    E0 = E0 .* exp.(-1im*k_prop*dz)
+    E0 .* exp.(-1im*phase.k_prop[index_z]*phase.dz[index_z])
 
     # Transform to position space
-    E0 = FFTW.ifftshift(E0)
-    FFTW.ifft!(E0)
+    i_plan * E0
 
     # Diffract at the Disk. Only the disk is diffracting.
-    E0 .*= [abs(x^2 + y^2) < diskR^2 for x in coords.X, y in coords.Y]
+    E0 .*= [abs(x^2 + y^2) < phase.diskR^2 for x in coords.X, y in coords.Y]
 
-    # Kick (tilt)
-    if tilt_x != 0 || tilt_y != 0
-        E0 .*= [exp(-1im*k0*tilt_x*x) * exp(-1im*k0*tilt_y*y) for x in coords.X, y in coords.Y]
-    end
+    #tilts and surface misalignments, for now without check if neccessary
+    view(E0, phase.x_sub, phase.y_sub) .*= phase.surface[:,:,index_z]
 
     # FFT the E-Field to spatial frequencies / momentum space
-    FFTW.fft!(E0)
-    E0 = FFTW.fftshift(E0)
+    plan * E0
 
     return E0
 end
@@ -209,15 +259,13 @@ end
 This propagator just does the phase propagation. Go to [`propagator`](@ref)
 for documentation. 3D arguments to be compatible with other propagators.
 """
-function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
+function propagator1D!(E0, index_z, coords::CoordinateSystem, phase::PhaseShifts, plan, i_plan)
     # Version of the propagator without the fft
     # should be faster and easy to check consistency with 1D calc
 
     # Propagate through space
-    k0 = 2*pi/lambda
-    k_prop = conj(sqrt.(k0^2))
-    e1 = E0.*exp(-1im*k_prop*dz*sqrt(eps))
-    return e1
+    k_prop = conj(sqrt.(phase.k0[index_z]^2))
+    E0 .*= exp(-1im*k_prop*phase.dz[index_z])
 
 end
 
