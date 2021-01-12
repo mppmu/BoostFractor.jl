@@ -208,7 +208,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         propagation_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
         #The propagation within the disk is still missing
         for m in 1:modes.M, l in -modes.L:modes.L
-            kz = sqrt(k0^2 - modes.mode_kt[m,l+modes.L+1])
+            kz = sqrt(k0^2 - modes.mode_kt[m,l+modes.L+1]^2)
             propagation_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m-1)*(2modes.L+1)+l+modes.L+1] = exp(-1im*kz*dz)
         end
         # It is important to note the multiplication from the left
