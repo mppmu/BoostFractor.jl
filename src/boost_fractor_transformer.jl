@@ -208,7 +208,7 @@ function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coo
         propagation_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
         #The propagation within the disk is still missing
         for m in 1:modes.M, l in -modes.L:modes.L
-            kz = sqrt(k0^2 - modes.mode_kt[m,l+modes.L+1])
+            kz = sqrt(k0^2 - modes.mode_kt[m,l+modes.L+1]^2)
             propagation_matrix[(m-1)*(2modes.L+1)+l+modes.L+1, (m-1)*(2modes.L+1)+l+modes.L+1] = exp(-1im*kz*dz)
         end
         # It is important to note the multiplication from the left
@@ -240,7 +240,6 @@ function get_boundary_matrix(n_left, n_right, diffprop::Array{Complex{T}}, modes
 
     # The product, i.e. transfer matrix
     return G * [diffprop modes.zeromatrix; modes.zeromatrix inv(Array{Complex{T}}(diffprop))]
-
     # Note: we build up the system from the end (Lm) downwards until L0
     # so this makes a transfer matrix from interface n -> m to a function that goes from interface n-1 ->m
     # This is convenient, because using this iteratively one arrives at exactly the T_n^m matrix from
@@ -278,7 +277,7 @@ end
 """
 Transformer Algorithm using Transfer Matrices and Modes to do the 3D Calculation.
 """
-function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices=nothing, diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR), reflect=nothing)
+function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes; f=10.0e9, velocity_x=0, prop=propagator, propagation_matrices::Array{Array{Complex{T},2},1}=Array{Complex{Float64},2}[], diskR=0.15, emit=axion_induced_modes(coords,modes;B=nothing,velocity_x=velocity_x,diskR=diskR,f=f), reflect=nothing) where T<:Real
     # For the transformer the region of the mirror must contain a high dielectric constant,
     # as the mirror is not explicitly taken into account
     # To have same SetupBoundaries object for all codes and cheerleader assumes NaN, just define a high constant
@@ -290,7 +289,9 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
 
     initial = emit
     #println(initial)
-    axion_beam = Array{Complex{Float64}}(zeros((modes.M)*(2modes.L+1)))
+
+    axion_beam = Array{Complex{T}}(zeros((modes.M)*(2modes.L+1)))
+
     #println(axion_beam)
 
     #=
@@ -326,7 +327,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
         # calculate T_s^m ---------------------------
 
         # Propagation matrix (later become the subblocks of P)
-        diffprop = (propagation_matrices === nothing ?
+        diffprop = (isempty(propagation_matrices) ?
                         propagation_matrix(bdry.distance[idx_reg(s)], diskR, bdry.eps[idx_reg(s)], bdry.relative_tilt_x[idx_reg(s)], bdry.relative_tilt_y[idx_reg(s)], bdry.relative_surfaces[idx_reg(s),:,:], lambda, coords, modes; prop=prop) :
                         propagation_matrices[idx_reg(s)])
 

@@ -1,6 +1,6 @@
 # <img src="docs/src/img/boost_fractor_logo.png" alt="BoostFractor" width=300> <!--BoostFractor.jl--> 
 
-[![Build Status](https://travis-ci.com/mppmu/BoostFractor.jl.svg?token=WaxBMkB9ZxeQMN9rjG57&branch=master)](https://travis-ci.com/mppmu/BoostFractor.jl)
+[![Build Status](https://github.com/mppmu/BoostFractor.jl/workflows/build/badge.svg?branch=master)](undefined)
 [![codecov](https://codecov.io/gh/mppmu/BoostFractor.jl/branch/master/graph/badge.svg?token=YF747EQJWX)](undefined)
 
 [MADMAX](https://madmax.mpp.mpg.de) axion-electrodynamics simulation in Julia. ([1D](docs/src/1d_model.md)  and [3D](docs/src/3d_algorithms.md))
