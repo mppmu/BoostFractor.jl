@@ -346,7 +346,7 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
         return boost
     end
 
-    refl = transmissionfunction_complete[index(modes,2),index(modes,2)] \
+    refl = - transmissionfunction_complete[index(modes,2),index(modes,2)] \
            ((transmissionfunction_complete[index(modes,2),index(modes,1)]) * (reflect))
     return boost, refl
 end
@@ -380,7 +380,7 @@ function transformer_trace_back(reflected_beam, input_beam,
     #=
         We start with the leftmost region where the solution is known and successively transform through the system:
     =#
-    solution_current = permutedims(hcat(input_beam, reflected_beam), [2,1])
+    solution_current = vcat(input_beam, reflected_beam)
     fields_regions[idx_reg(1),:,:] = copy(solution_current)
     for s in 1:Nregions-1 # (Nregions-1):-1:1
         # Propagation matrix (later become the subblocks of P)
@@ -398,8 +398,7 @@ function transformer_trace_back(reflected_beam, input_beam,
         solution_current = transmissionfunction_bdry * solution_current
 
         if inlcudes_axion
-            # TODO: Clarify why this sign is odd?
-            solution_current -= axion_S_factor(sqrt(bdry.eps[idx_reg(s+1)]),sqrt(bdry.eps[idx_reg(s)])) *
+            solution_current += axion_S_factor(sqrt(bdry.eps[idx_reg(s+1)]),sqrt(bdry.eps[idx_reg(s)])) *
                                     initial_bothside
         end
 
