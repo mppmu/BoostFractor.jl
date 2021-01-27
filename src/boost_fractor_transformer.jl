@@ -358,6 +358,10 @@ Traces back the field of a solution for the reflectivity in the system.
 Same arguments as transformer(), but first two arguments are the reflected beam
 solution and the input beam. Returns an array with the left- and rightgoing field
 amplitudes in each region.
+
+Theoreticallly works in 3D as well, however be careful when plotting the output!
+Simple multiplication with e^{ikz} doesnt work anymore for 3D. Need some sort of Fourier propagation
+to specific points between disks to be able to plot result.
 """
 function transformer_trace_back(reflected_beam, input_beam,
     bdry::SetupBoundaries, coords::CoordinateSystem, modes::Modes;
