@@ -13,8 +13,8 @@ end
 @testset "Package BoostFractor" begin
 
 @everywhere begin
-    #PATH = ".."
-    PATH = "."#"BoostFractor.jl"
+    PATH = ".."
+    #PATH = "."#"BoostFractor.jl"
     # General Interface
     include(PATH*"/src/boost_fractor.jl")
 
