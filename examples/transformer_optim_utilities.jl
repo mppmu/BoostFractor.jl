@@ -96,13 +96,13 @@ end;
 Calculates boostfactor for given frequencies and booster. Note that the distances in sbdry are meaningless since
 propagation_matrices_set already contains the effect of spacings.
 """        
-function calc_boostfactor_modes(sbdry,coords,modes, frequencies, prop_matrices_set::Array{Array{Complex{T},2},2}; diskR=0.15) where T<:Real
+function calc_boostfactor_modes(sbdry,coords,modes, frequencies, prop_matrices_set::Array{Array{Complex{T},2},2}; prop=propagator, diskR=0.15) where T<:Real
     n_freq = length(frequencies)
     n_modes = size(prop_matrices_set[1,1])[1]
     EoutModes0 = Array{Complex{T},3}(undef,1,n_modes,n_freq)
     # Sweep over frequency
     Threads.@threads for f in 1:n_freq
-        boost = transformer(sbdry,coords,modes; prop=propagator,diskR=diskR,f=frequencies[f],propagation_matrices=prop_matrices_set[:,f],reflect=nothing)
+        boost = transformer(sbdry,coords,modes; prop=prop,diskR=diskR,f=frequencies[f],propagation_matrices=prop_matrices_set[:,f],reflect=nothing)
         EoutModes0[1,:,f] =  boost
     end
     return EoutModes0
@@ -112,7 +112,7 @@ end;
 """
 Calculates boostfactor and reflectivity
 """
-function calc_modes(sbdry,coords,modes, frequencies, prop_matrices_set::Array{Array{Complex{T},2},2},reflect; diskR=0.15,prop=propagator) where T<:Real
+function calc_modes(sbdry,coords,modes, frequencies, prop_matrices_set::Array{Array{Complex{T},2},2},reflect;prop=propagator, diskR=0.15) where T<:Real
     n_freq = length(frequencies)
     n_modes = size(prop_matrices_set[1,1])[1]
     EoutModes0 = Array{Complex{T},3}(undef,2,n_modes,n_freq)
@@ -127,7 +127,7 @@ end;
 
 
 
-function calc_boostfactor_cost(dist_shift::Array{T,1},itp,frequencies,sbdry::SetupBoundaries,coords::CoordinateSystem,modes::Modes,m_reflect;diskR=0.15) where T<:Real
+function calc_boostfactor_cost(dist_shift::Array{T,1},itp,frequencies,sbdry::SetupBoundaries,coords::CoordinateSystem,modes::Modes,m_reflect;prop=propagator, diskR=0.15) where T<:Real
     dist_bound_hard = Interpolations.bounds(itp)[3]
     #Return hard penalty when exceeding interpolation bounds
     if any(.!(dist_bound_hard[1] .< dist_shift .< dist_bound_hard[2])) 
@@ -137,7 +137,7 @@ function calc_boostfactor_cost(dist_shift::Array{T,1},itp,frequencies,sbdry::Set
     penalty = soft_box_penalty(dist_shift,dist_bound_hard)
 
     prop_matrices_set_interp = interpolate_prop_matrix(itp,dist_shift);
-    Eout = calc_boostfactor_modes(sbdry,coords,modes,frequencies,prop_matrices_set_interp,diskR=diskR)
+    Eout = calc_boostfactor_modes(sbdry,coords,modes,frequencies,prop_matrices_set_interp,prop=prop, diskR=diskR)
     cpld_pwr = abs2.(sum(conj.(Eout[1,:,:]).*m_reflect, dims=1)[1,:])
     cost =  -p_norm(cpld_pwr,-20)*penalty
     return cost
