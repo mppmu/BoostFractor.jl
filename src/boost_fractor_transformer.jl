@@ -43,7 +43,7 @@ end
 Doc: TODO
 """
 
-function SeedModes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15,pattern_input=nothing)
+function SeedModes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, diskR=0.15,pattern_input=nothing,kT_arr=nothing)
     if ThreeDim
         M, L = Mmax,Lmax
         if pattern_input === nothing # If no specific pattern is put in, assume that E field is treated as scalar. Will change in some future version.
@@ -53,7 +53,7 @@ function SeedModes(coords::CoordinateSystem;ThreeDim=false, Mmax=1, Lmax=0, disk
         end
         mode_kt = Array{Complex{Float64}}(zeros(M,2*L+1))
         for m in 1:M, l in -L:L
-            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:,:] = mode(m,l,L,coords;diskR=diskR,pattern_input=pattern_input)
+            mode_kt[m,l+L+1], mode_patterns[m,l+L+1,:,:,:] = mode(m,l,L,coords;diskR=diskR,pattern_input=pattern_input,kT_arr=kT_arr)
         end
     else
         M = 1
@@ -85,7 +85,7 @@ end
 Calculate the transverse k and field distribution for a mode.
 Implements Knirck 6.12.
 """
-function mode(m,l,L, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03,pattern_input=nothing)
+function mode(m,l,L, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03,pattern_input=nothing, kT_arr=nothing)
     RR = [sqrt(x^2 + y^2) for x in coords.X, y in coords.Y]
     Phi = [atan(y,x) for x in coords.X, y in coords.Y]
     kr = besselj_zero(abs.(l),m)/diskR
@@ -97,6 +97,11 @@ function mode(m,l,L, coords::CoordinateSystem; diskR=0.15, k0=2pi/0.03,pattern_i
         pattern = reshape(pattern, (size(pattern)...,1)) # Expand dims without putting additional values in
     else
         pattern = pattern_input[m,l+L+1,:,:,:]
+        if kT_arr === nothing
+            error("you have to define kTs as well when putting in an input pattern")
+        else
+            ktransversal = kT_arr[m,l+L+1]
+        end
     end
     return ktransversal, pattern
 end
@@ -334,6 +339,8 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
         # T_s^m = T_{s+1}^m G_s P_s
         transmissionfunction_complete *= get_boundary_matrix(sqrt(bdry.eps[idx_reg(s)]), sqrt(bdry.eps[idx_reg(s+1)]), diffprop, modes)
     end
+    #println(axion_beam)
+    #println(transmissionfunction_complete[index(modes,2),index(modes,2)])
 
     # The rest of 4.14a
     boost =  - (transmissionfunction_complete[index(modes,2),index(modes,2)]) \ (axion_beam)
@@ -341,7 +348,6 @@ function transformer(bdry::SetupBoundaries, coords::CoordinateSystem, modes::Mod
     # Alternative ways are e.g.
     #rtol = sqrt(eps(real(float(one(eltype(transmissionfunction_complete[index(modes,2),index(modes,2)]))))))
     #boost = - pinv(transmissionfunction_complete[index(modes,2),index(modes,2)], rtol=rtol) * (axion_beam)
-
     # If no reflectivity is ought to be calculated, we only return the axion field
     if reflect === nothing
         return boost
