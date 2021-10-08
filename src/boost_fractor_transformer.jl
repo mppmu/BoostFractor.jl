@@ -171,7 +171,7 @@ end
 #TODO: tilts, eps and surface should come from SetupBoundaries object?
 """
 """
-function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, modes::Modes; is_air=(eps==1), onlydiagonal=false, prop=propagator)
+function propagation_matrix(dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem, modes::Modes; is_air=(real(eps)==1), onlydiagonal=false, prop=propagator)
     matching_matrix = Array{Complex{Float64}}(zeros(modes.M*(2modes.L+1),modes.M*(2modes.L+1)))
 
     k0 = 2pi/lambda*sqrt(eps)
