@@ -163,8 +163,11 @@ function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, 
     #       We should give a warning and handle this here
     #       At the moment the script will just also propagate with a loss for those components
     # Propagate through space
-    k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [sqrt(k0^2 - Kx^2 - Ky^2 - 0.0im) for Kx in coords.kX, Ky in coords.kY]
+    #k0 = 2*pi/lambda*sqrt(eps)
+    #k_prop = [sqrt(k0^2 - Kx^2 - Ky^2 - 0.0im) for Kx in coords.kX, Ky in coords.kY]
+    
+    k0 = 2*pi/lambda*conj(sqrt(eps))
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
     E0 = E0 .* exp.(-1im*k_prop*dz)
     # Backtransform
     E0 = FFTW.ifftshift(E0)
@@ -180,8 +183,11 @@ and [`propagatorNoTilts`](@ref). Go to [`propagator`](@ref) for documentation.
 """
 function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Propagate through space
-    k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [sqrt(k0^2 - Kx^2 - Ky^2 - 0.0im) for Kx in coords.kX, Ky in coords.kY]
+    #k0 = 2*pi/lambda*sqrt(eps)
+    #k_prop = [sqrt(k0^2 - Kx^2 - Ky^2 - 0.0im) for Kx in coords.kX, Ky in coords.kY]
+    
+    k0 = 2*pi/lambda*conj(sqrt(eps))
+    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
     E0 = E0 .* exp.(-1im*k_prop*dz)
 
     # Transform to position space
