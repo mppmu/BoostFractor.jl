@@ -94,7 +94,9 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
         append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
         append!(epsilon, 1.0)
     end
-
+    epsilon = Array{Complex{Float64}}(epsilon)
+    epsilon[imag.(epsilon) .== 0.0] .= real.(epsilon[imag.(epsilon) .== 0.0]) .- 0.0im#Make sure that a real epsilon is casted to Re(eps)-0.0im.
+    
     reflectivities = complex([1.0])
     R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
     append!(reflectivities, R)
@@ -102,7 +104,7 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
     # Check if initialization was self-consistent
     length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
 
-    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
+    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), epsilon, relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
 
@@ -133,6 +135,9 @@ with k0 to the tilted surface (only valid if diffraction effects are small).
 See also: [`propagatorMomentumSpace`](@ref)
 """
 function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
+    #For real eps we need to make sure it's represented as real(eps)-0.0im so that sqrt(k0^2- Kx^2 - Ky^2)[propagatorNoTilts] has negative imaginary part for
+    #Kx^2 + Ky^2>k0 and these modes propagate with a loss:
+    imag(eps) == 0.0 ? eps = real(eps) - 0.0im : nothing
     k0 = 2*pi/lambda*sqrt(eps)
     # Call the propagator and add a phase imposed by the tilt
     E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
@@ -164,7 +169,8 @@ function propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, 
     #       At the moment the script will just also propagate with a loss for those components
     # Propagate through space
     k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
+    k_prop = [sqrt(k0^2 - Kx^2 - Ky^2) for Kx in coords.kX, Ky in coords.kY]
+
     E0 = E0 .* exp.(-1im*k_prop*dz)
     # Backtransform
     E0 = FFTW.ifftshift(E0)
@@ -181,7 +187,7 @@ and [`propagatorNoTilts`](@ref). Go to [`propagator`](@ref) for documentation.
 function propagatorMomentumSpace(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
     # Propagate through space
     k0 = 2*pi/lambda*sqrt(eps)
-    k_prop = [conj(sqrt( Complex{Float64}(k0^2 - Kx^2 - Ky^2) )) for Kx in coords.kX, Ky in coords.kY]
+    k_prop = [sqrt(k0^2 - Kx^2 - Ky^2) for Kx in coords.kX, Ky in coords.kY]
     E0 = E0 .* exp.(-1im*k_prop*dz)
 
     # Transform to position space
@@ -214,9 +220,8 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coord
     # should be faster and easy to check consistency with 1D calc
 
     # Propagate through space
-    k0 = 2*pi/lambda
-    k_prop = conj(sqrt.(k0^2))
-    e1 = E0.*exp(-1im*k_prop*dz*sqrt(eps))
+    k0 = 2*pi/lambda*sqrt(eps)
+    e1 = E0.*exp(-1im*k0*dz)
     return e1
 
 end
