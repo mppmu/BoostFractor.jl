@@ -104,7 +104,7 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
     # Check if initialization was self-consistent
     length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
 
-    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), Array{Complex{Float64}}(epsilon), relative_tilt_x, relative_tilt_y, relative_surfaces)
+    return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), epsilon, relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
 
