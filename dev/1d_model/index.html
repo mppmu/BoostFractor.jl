@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1D Model · BoostFractor</title><script data-outdated-warner src="../assets/warner.js"></script><link rel="canonical" href="https://mppmu.github.io/ShapesOfVariables.jl/stable/1d_model/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">BoostFractor</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../api/">API</a></li><li><a class="tocitem" href="../LICENSE/">LICENSE</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>1D Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>1D Model</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/mppmu/BoostFractor.jl/blob/master/docs/src/1d_model.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="D-Model"><a class="docs-heading-anchor" href="#D-Model">1D Model</a><a id="D-Model-1"></a><a class="docs-heading-anchor-permalink" href="#D-Model" title="Permalink"></a></h1><h2 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h2><p>The <code>src</code> directory contains a file <code>Analytical1D.py</code> containing a 1D calculation for various disk spacings in Python.</p><p>The easiest way to use it in julia is to copy it to your project directory and call it via</p><pre><code class="language-julia hljs">using PyCall
+A1DM = pyimport(&quot;Analytical1D&quot;)
+frequencies = 10:0.0001:30
+spacings = [2,3,4,5,6,2,3,4,5,6,7,0]*1e-3 # First value is distance between mirror and first disk
+ref, ax = A1DM.disk_system(Array{Float64}(frequencies*1e9),
+        num_disk=11, disk_epsilon=25, mirror=true,
+        spacings=spacings)</code></pre><p>The last spacing is the distance to the antenna and only changes the phase of the result. The disk thickness is 1mm, but can be changed (see code...).,</p><p><code>ref</code> contains an array with the <em>amplitude reflecitivtiy</em> of the system depending on frequency.</p><p><code>ax</code> contains an array with the <em>amplitude boost factor</em> of the system depending on frequency.</p><p>To get the reflected power / power boost, the absolute value of these quantities need to be squared. To get the group delay, you have to take numerically the derivative of the phase of the reflecticity over the angular frequency.</p><h2 id="Optimization"><a class="docs-heading-anchor" href="#Optimization">Optimization</a><a id="Optimization-1"></a><a class="docs-heading-anchor-permalink" href="#Optimization" title="Permalink"></a></h2><p>In order to compare our simulations, I think it is good to use always the same disk spacing configurations. A list of spacings can be found on Confluence, see <a href="https://confluence.desy.de/pages/viewpage.action?pageId=118280190">MADMAX / Working Groups / Theory, simulations and analysis / Disk Positions for various Boost Factors</a>.</p><p>Work on the optimizations should focus on improving the optimization procedure itself together with the proof of principle setup or learning about the 1D model.</p><p>Using above code snippet, you can use any Python or Julia optimization package to optimize boost factors.</p><p>For example you can run</p><pre><code class="language-julia hljs"># Optimization package for Julia
+using Optim
+# 1D Model
+A1DM = pyimport(&quot;Analytical1D&quot;)
+
+
+# Frequencies to look at (e.g. for a plot)
+frequencies = 21.98:0.002:22.12
+# Frequencies to maximize the boost within
+freqmin = 22.0
+freqmax = 22.045
+cond = (frequencies .&gt; freqmin).*(frequencies .&lt; freqmax)
+
+# A good initial guess of course may speed up the optimization drastically.
+init = [1.00334, 6.94754, 7.1766, 7.22788, 7.19717,
+        7.23776, 7.07746, 7.57173, 7.08019, 7.24657,
+        7.21708, 7.18317, 7.13025, 7.2198, 7.45585,
+        7.39873, 7.15403, 7.14252, 6.83105, 7.42282]*1e-3 
+
+# The function to optimize
+function minimizeme(arr)
+    # You do not want to optimize the last spacing to the antenna,
+    # because it does not change the boost factor
+    # So arr only contains e.g. 20 spacings
+    # but the 1D code needs 21, so we add one:
+    
+    distances = copy(arr)
+    push!(distances,0)
+    
+    # We run the 1D code for the frequencies where we want to maximize the boost 
+    ref, ax = A1DM.disk_system(Array{Float64}(frequencies*1e9)[cond], 
+                               num_disk=20, disk_epsilon=24, spacings=distances)
+    
+    # Take the minimum value of the boost in that region and
+    # return it after multiplying with (-1).
+    # This value shall be minimized.
+    return -minimum(abs2.(ax))
+end
+
+# Do the optimization
+optim_result = Optim.optimize(minimizeme, init, NelderMead(), 
+                              Optim.Options(x_tol=100e-9, f_tol=1e-2,g_tol=1e-5,show_trace=true,
+                              show_every=100,iterations=Int(5e4) ) )
+# Get the resulting spacings
+optimized_spacings = Optim.minimizer(optim_result)
+
+# ... </code></pre><p>Of course, you can do this more sophiscticated, e.g. if you get negative spacings or multiple wavelength spacings, you may want to constrain the optimization range. You can also set a time limit for the optimization etc.</p><pre><code class="language-julia hljs">lower = zeros(20) # negative spacings would be a bit, well, impractical..
+upper = 0.036*ones(20) # more than 2 wavelengths really isn&#39;t neccessary...
+optim_result = Optim.optimize(minimizeme, lower, upper, init,  
+                              Fminbox(NelderMead()), 
+                              Optim.Options(x_tol=100e-9, f_tol=1e-3,g_tol=1e-5,
+                                            show_trace=true,show_every=100,time_limit=43200. ) )</code></pre><p>For more details see <a href="http://julianlsolvers.github.io/Optim.jl/stable/">the <code>Optim</code> documentation</a>.</p><h2 id="ToDo"><a class="docs-heading-anchor" href="#ToDo">ToDo</a><a id="ToDo-1"></a><a class="docs-heading-anchor-permalink" href="#ToDo" title="Permalink"></a></h2><p>It remains to clean up the 1D model file, translate it to julia such that maybe a automatic differentiation could be applied. This could be very, very useful to do optimizations of the disks spacings.</p><h2 id="Trouble-Shooting"><a class="docs-heading-anchor" href="#Trouble-Shooting">Trouble-Shooting</a><a id="Trouble-Shooting-1"></a><a class="docs-heading-anchor-permalink" href="#Trouble-Shooting" title="Permalink"></a></h2><p>Note, that for this to work, it may heavily depend on your Julia and Python version(s) installed.</p><p>It might be neccessary to add at the beginning of your Julia file: </p><pre><code class="nohighlight hljs">file:pushfirst!(PyVector(pyimport(&quot;sys&quot;).&quot;path&quot;), &quot;&quot;) </code></pre><p>in order to import the python file from the local directory. </p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.8 on <span class="colophon-date" title="Thursday 14 October 2021 13:19">Thursday 14 October 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
