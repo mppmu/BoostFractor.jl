@@ -135,6 +135,9 @@ with k0 to the tilted surface (only valid if diffraction effects are small).
 See also: [`propagatorMomentumSpace`](@ref)
 """
 function propagator(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords::CoordinateSystem)
+    #For real eps we need to make sure it's represented as real(eps)-0.0im so that sqrt(k0^2- Kx^2 - Ky^2)[propagatorNoTilts] has negative imaginary part for
+    #Kx^2 + Ky^2>k0 and these modes propagate with a loss:
+    imag(eps) == 0.0 ? eps = real(eps) - 0.0im : nothing
     k0 = 2*pi/lambda*sqrt(eps)
     # Call the propagator and add a phase imposed by the tilt
     E0 = propagatorNoTilts(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coords)
