@@ -94,8 +94,9 @@ function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothin
         append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
         append!(epsilon, 1.0)
     end
-    epsilon[imag.(epsilon) .== 0.0] = real.(epsilon[imag.(epsilon) .== 0.0]) .- 0.0im#Make sure that a real epsilon is casted to Re(eps)-0.0im. 
-
+    epsilon = Array{Complex{Float64}}(epsilon)
+    epsilon[imag.(epsilon) .== 0.0] .= real.(epsilon[imag.(epsilon) .== 0.0]) .- 0.0im#Make sure that a real epsilon is casted to Re(eps)-0.0im.
+    
     reflectivities = complex([1.0])
     R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
     append!(reflectivities, R)
