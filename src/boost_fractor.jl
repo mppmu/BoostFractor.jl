@@ -80,30 +80,14 @@ Initialize `mutable struct SetupBoundaries` with sensible values.
 # Arguments
 - `diskno::Int` ```> 0```: Number of dielectric discs
 """
-function SeedSetupBoundaries(coords::CoordinateSystem; diskno=3, distance=nothing, epsilon=nothing, relative_tilt_x=zeros(2*diskno+2), relative_tilt_y=zeros(2*diskno+2), relative_surfaces=zeros(2*diskno+2 , length(coords.X), length(coords.Y)))
-
-    # Initialize SetupBoundaries entries with default values given diskno. Rest was already defined in function definition.
-    if distance === nothing # [m]
-        distance = [0.0]
-        append!(distance, [ x % 2 == 1 ? 8e-3 : 1e-3 for x in 1:2*(diskno) ])
-        append!(distance, 0e-3) #8e-3)
-    end
-
-    if epsilon === nothing
-        epsilon = [NaN]
-        append!(epsilon, [ x % 2 == 1.0 ? 1.0 : 9.0 for x in 1:2*(diskno) ])
-        append!(epsilon, 1.0)
-    end
+function SeedSetupBoundaries(coords::CoordinateSystem, distance, epsilon; relative_tilt_x=zeros(length(distance)), relative_tilt_y=zeros(length(distance)), relative_surfaces=zeros(length(distance) , length(coords.X), length(coords.Y)))
     epsilon = Array{Complex{Float64}}(epsilon)
     epsilon[imag.(epsilon) .== 0.0] .= real.(epsilon[imag.(epsilon) .== 0.0]) .- 0.0im#Make sure that a real epsilon is casted to Re(eps)-0.0im.
-    
     reflectivities = complex([1.0])
     R = [(sqrt(epsilon[i-1]) - sqrt(epsilon[i])) / (sqrt(epsilon[i-1]) + sqrt(epsilon[i])) for i in 3:length(epsilon)]
     append!(reflectivities, R)
-
     # Check if initialization was self-consistent
     length(distance) == length(reflectivities)+1 == length(epsilon) == length(relative_tilt_x) == length(relative_tilt_y) == size(relative_surfaces, 1) || throw(DimensionMismatch("the arrays in your SetupBoundaries objects don't fit together!"))
-
     return SetupBoundaries(distance, Array{Complex{Float64}}(reflectivities), epsilon, relative_tilt_x, relative_tilt_y, relative_surfaces)
 end
 
@@ -225,39 +209,3 @@ function propagator1D(E0, dz, diskR, eps, tilt_x, tilt_y, surface, lambda, coord
     return e1
 
 end
-
-
-#TODO: This function is no longer supported. reflectivity_transmissivity_1d does not exist; DiskDefinition has merged into SetuoBoundaries.
-@doc raw"""
-    initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, disk::DiskDefiniton)
-
-OUTDATED! Does not work, do not use!
-Calculate reflection and transmission coefficients.
-
-# Arguments
-- `freq::Float64` ```> 0```: Frequency of EM radiation
-- `bdry::SetupBoundaries`: Properties of dielectric boundaries
-- `disk::DiskDefiniton`: Properties of dielectric discs
-"""
-# function initialize_reflection_transmission(freq::Float64, bdry::SetupBoundaries, coords::CoordinateSystem)#, disk::DiskDefiniton)
-#     if disk === nothing
-#         # Iniatilize reflection coefficients according to epsilon
-#         r_left = ones(length(bdry.eps))
-#         r_left[1] = -1
-#         for i in 2:length(bdry.eps)
-#             # The reflectivity at this point
-#             r_left = (sqrt(bdry.eps[i-1])-sqrt(bdry.eps[i]))/(sqrt(bdry.eps[i])+sqrt(bdry.eps[i-1]))
-#         end
-#         r_right = -r_left
-#         t_left = 1. + r_left
-#         t_right = 1 .+ r_right
-#     else
-#         # Initailize reflection coefficients according to disk model
-#         ref, trans = reflectivity_transmissivity_1d(freq, disk.thickness)
-#         r_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*ref
-#         r_right = r_left
-#         t_left = ones(length(bdry.eps),length(coords.kX),length(coords.kY)).*trans
-#         t_right = t_left
-#     end
-#     return r_left, r_right, t_left, t_right
-# end
