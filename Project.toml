@@ -1,5 +1,6 @@
 name = "BoostFractor"
 uuid = "222d2961-0b53-58be-99ce-9613a82efb32"
+version = "1.0.0"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
